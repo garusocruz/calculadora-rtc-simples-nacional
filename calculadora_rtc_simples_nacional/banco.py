@@ -22,8 +22,9 @@ def caminho() -> Path:
 
 
 def conectar() -> sqlite3.Connection:
-    arquivo = caminho()
-    return sqlite3.connect(f"file:{arquivo}?mode=ro", uri=True)
+    arquivo = caminho().expanduser().resolve()
+    # Três barras: o SQLite do Cloud Build trata file:/workspace/... como caminho relativo.
+    return sqlite3.connect(f"{arquivo.as_uri()}?mode=ro", uri=True)
 
 
 def tabelas() -> set[str]:

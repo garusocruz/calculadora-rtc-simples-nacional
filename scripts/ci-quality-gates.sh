@@ -71,6 +71,8 @@ run_selftests() {
     scripts/hooks/pre-commit.sh
     scripts/hooks/pre-push.sh
     scripts/equivalencia.sh
+    deploy/scripts/publish-self.sh
+    deploy/terraform/main.tf
   )
   local path
   for path in "${required[@]}"; do
@@ -129,6 +131,11 @@ run_pytest() {
   if [[ "${SKIP_PYTEST:-0}" == "1" ]]; then
     record "pytest" "skip" "SKIP_PYTEST=1"
     return
+  fi
+  local cache_db="${ROOT}/.cache/oficial/java/calculadora/db/calculadora-pro.db"
+  if [[ -z "${CALC_DB:-}" && -f "${cache_db}" ]]; then
+    export CALC_DB="${cache_db}"
+    log "pytest usa o banco da equivalência"
   fi
   log "==> pytest + coverage (fail-under=${COVERAGE_FAIL_UNDER})"
   local py

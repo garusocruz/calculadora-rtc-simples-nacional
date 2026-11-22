@@ -1,5 +1,16 @@
-# Pull request para main. Quality gates e equivalência. Não publica.
+# Pull request para main. Equivalência e quality gates. Publish só com _RUN_PUBLISH=1.
 # O push na main usa cloudbuild-prod.yaml.
+substitutions:
+  _LIB_NAME: calculadora_rtc_simples_nacional
+  _ENVIRONMENT: pr
+  _REGION: us-central1
+  _PYTHON_REPO: lynko-python
+  _RUN_TERRAFORM: "0"
+  _RUN_PUBLISH: "0"
+  _GITHUB_OWNER: garusocruz
+  _GITHUB_REPO: calculadora-rtc-simples-nacional
+  _PUBLISH_SA_EMAIL: ""
+
 timeout: 3600s
 
 options:
@@ -24,10 +35,10 @@ steps:
         chmod +x scripts/ci-quality-gates.sh scripts/run-trivy-fs.sh scripts/hooks/*.sh
         export TRIVY_CACHE_DIR=/workspace/.ci/trivy-cache
         bash scripts/ci-quality-gates.sh cb
-    waitFor: ["-"]
+    waitFor: ["equivalencia"]
 
   - id: equivalencia
-    waitFor: ["quality-gates"]
+    waitFor: ["-"]
     name: eclipse-temurin:25-jdk
     entrypoint: bash
     args:
@@ -41,3 +52,38 @@ steps:
         /opt/venv/bin/pip install pytest pytest-cov
         export PATH="/opt/venv/bin:$$PATH"
         bash scripts/equivalencia.sh
+
+  - id: publish
+    name: python:3.12-slim
+    entrypoint: bash
+    env:
+      - GCP_PROJECT=$PROJECT_ID
+      - PROJECT_ID=$PROJECT_ID
+      - GCP_REGION=$_REGION
+      - PYTHON_ARTIFACT_REPO=$_PYTHON_REPO
+      - LIB_ID=$_LIB_NAME
+      - PUBLISH_SA_EMAIL=$_PUBLISH_SA_EMAIL
+      - COMMIT_SHA=$COMMIT_SHA
+      - SHORT_SHA=$SHORT_SHA
+      - BRANCH_NAME=$BRANCH_NAME
+      - REF_NAME=$REF_NAME
+      - _ENVIRONMENT=$_ENVIRONMENT
+      - _GITHUB_OWNER=$_GITHUB_OWNER
+      - _GITHUB_REPO=$_GITHUB_REPO
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        if [ "${_RUN_PUBLISH}" != "1" ]; then
+          echo "skip publish (_RUN_PUBLISH=${_RUN_PUBLISH})"
+          exit 0
+        fi
+        if [ -n "${_PUBLISH_SA_EMAIL}" ]; then
+          export PUBLISH_SA_EMAIL="${_PUBLISH_SA_EMAIL}"
+          export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT="${_PUBLISH_SA_EMAIL}"
+        fi
+        apt-get update -qq && apt-get install -y -qq git rsync curl ca-certificates python3 >/dev/null
+        SHA="$${SHORT_SHA:-$$(git rev-parse --short=7 HEAD)}"
+        chmod +x deploy/scripts/*.sh
+        ./deploy/scripts/publish-self.sh --env "${_ENVIRONMENT}" --sha "$${SHA}" --lib-id "${_LIB_NAME}"
+    waitFor: ["quality-gates"]
