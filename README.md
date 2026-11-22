@@ -4,7 +4,7 @@ Cálculo de CBS e IBS do Simples Nacional, em Python. É uma releitura da calcul
 
 **Nossas** (esta releitura em Python, MIT, Copyright (c) 2026 Garuso Cruz)
 
-[![versão 0.2.0](https://img.shields.io/badge/vers%C3%A3o-0.2.0-blue)](https://github.com/garusocruz/calculadora-rtc-simples-nacional)
+[![versão 0.3.0](https://img.shields.io/badge/vers%C3%A3o-0.3.0-blue)](https://github.com/garusocruz/calculadora-rtc-simples-nacional)
 [![nossa licença MIT](https://img.shields.io/badge/nossa%20licen%C3%A7a-MIT%20Garuso%20Cruz-green)](LICENSE)
 [![cobertura Python 94,94%](https://img.shields.io/badge/cobertura%20Python-94%2C94%25-brightgreen)](#ultima-validacao)
 [![Cloud Build: cloudbuild.yaml, sem trigger](https://img.shields.io/badge/Cloud%20Build-cloudbuild.yaml%2C%20sem%20trigger-lightgrey?logo=googlecloud&logoColor=white)](cloudbuild.yaml)
