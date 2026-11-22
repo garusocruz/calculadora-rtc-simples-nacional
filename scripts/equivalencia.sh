@@ -116,6 +116,7 @@ for caminho in sorted(java_dir.glob("TEST-*.xml")):
         classe = caso.get("classname") or ""
         nome = caso.get("name") or ""
         texto = f"{classe} {nome} {fqcn_arquivo}"
+        # O caso Java só confere o arquivo de teste da calculadora oficial.
         if (
             "Controller" in texto
             or ".controller." in fqcn_arquivo
@@ -123,6 +124,7 @@ for caminho in sorted(java_dir.glob("TEST-*.xml")):
             or "retorna400" in nome
             or fqcn_arquivo.endswith("Teste_LoteArredondamento")
             or fqcn_arquivo.endswith("Teste_SerializacaoNaoAlteraNumero")
+            or nome == "testeDaClasse_eACopiaUnicaDosDoisProjetos"
         ):
             continue
         tipo = "e2e" if "testesintegracao" in (classe + fqcn_arquivo) else "unitario"
