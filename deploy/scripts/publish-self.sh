@@ -72,6 +72,21 @@ RESOLVE=("${ROOT}/deploy/scripts/resolve-version.sh" --env "${ENV_NAME}" --sha "
 PKG_VERSION="$("${RESOLVE[@]}")"
 echo "lib=${LIB_ID} version=${PKG_VERSION} env=${ENV_NAME} branch=${BRANCH:--} region=${GCP_REGION} project=${GCP_PROJECT}"
 
+python3 - "${ROOT}/CHANGELOG.md" "${PKG_VERSION}" <<'PY'
+import pathlib, sys
+path, ver = sys.argv[1], sys.argv[2]
+text = pathlib.Path(path).read_text(encoding="utf-8") if pathlib.Path(path).exists() else ""
+heading = f"## {ver}"
+start = text.find(heading)
+if start < 0:
+    raise SystemExit(f"CHANGELOG.md não tem a seção {heading}")
+rest = text[start + len(heading):]
+nxt = rest.find("\n## ")
+body = rest if nxt < 0 else rest[:nxt]
+print(f"── mudanças da {ver} ──")
+print(body.strip())
+PY
+
 TWINE_REPO_URL="https://${GCP_REGION}-python.pkg.dev/${GCP_PROJECT}/${REPO_ID}/"
 
 python3 -m pip install -q --upgrade pip build twine keyrings.google-artifactregistry-auth poetry
