@@ -21,10 +21,20 @@ def caminho() -> Path:
     return ARQUIVO
 
 
+class _Conexao(sqlite3.Connection):
+    # O with do sqlite3 confirma a transação e deixa o arquivo aberto.
+    # No Cloud Build o limite estoura no meio da suíte.
+    def __exit__(self, tipo, valor, rastreio):
+        try:
+            return super().__exit__(tipo, valor, rastreio)
+        finally:
+            self.close()
+
+
 def conectar() -> sqlite3.Connection:
     arquivo = caminho().expanduser().resolve()
     # Três barras: o SQLite do Cloud Build trata file:/workspace/... como caminho relativo.
-    return sqlite3.connect(f"{arquivo.as_uri()}?mode=ro", uri=True)
+    return sqlite3.connect(f"{arquivo.as_uri()}?mode=ro", uri=True, factory=_Conexao)
 
 
 def tabelas() -> set[str]:
