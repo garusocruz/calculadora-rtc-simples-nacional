@@ -1,10 +1,18 @@
 # calculadora-rtc-simples-nacional
 
+**Nossas** — esta releitura em Python. MIT, Copyright (c) 2026 Garuso Cruz.
+
 [![versão 0.1.0](https://img.shields.io/badge/vers%C3%A3o-0.1.0-blue)](https://github.com/garusocruz/calculadora-rtc-simples-nacional)
-[![pin oficial a926d5a7](https://img.shields.io/badge/pin%20oficial-a926d5a7-orange)](https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional/commit/a926d5a76095ac0295a6612a9a54db7ffead2396)
+[![nossa licença MIT](https://img.shields.io/badge/nossa%20licen%C3%A7a-MIT%20Garuso%20Cruz-green)](LICENSE)
+[![cobertura Python 94,94%](https://img.shields.io/badge/cobertura%20Python-94%2C94%25-brightgreen)](#ultima-validacao)
 [![Cloud Build equivalência](https://img.shields.io/badge/Cloud%20Build-equival%C3%AAncia-1a73e8?logo=googlecloud&logoColor=white)](cloudbuild.yaml)
-[![licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-green)](LICENSE)
-[![Java oficial MIT](https://img.shields.io/badge/Java%20oficial-MIT%20Receita%20Federal-blue)](LICENSE-RECEITA.md)
+
+**Do pin oficial** — duas obras, a mesma licença MIT, Copyright (c) 2026 Receita Federal do Brasil: o Java do Simples `a926d5a7` e o Flyway do regime regular `f1eebd7`. Não é a licença desta lib.
+
+[![pin oficial a926d5a7](https://img.shields.io/badge/pin%20oficial-a926d5a7-orange)](https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional/commit/a926d5a76095ac0295a6612a9a54db7ffead2396)
+[![Java do pin MIT](https://img.shields.io/badge/Java%20do%20pin-MIT%20Receita%20Federal-blue)](LICENSE-RECEITA.md)
+[![Flyway do pin MIT](https://img.shields.io/badge/Flyway%20do%20pin-MIT%20Receita%20Federal-blue)](LICENSE-RECEITA.md)
+[![cobertura Java do pin 90,56%](https://img.shields.io/badge/cobertura%20Java%20do%20pin-90%2C56%25-brightgreen)](#ultima-validacao)
 
 Releitura em Python da calculadora oficial em Java da Receita Federal. Não é um fork: o código Java não entra neste repositório. O cálculo segue o commit pinado abaixo.
 
@@ -12,9 +20,11 @@ Releitura em Python da calculadora oficial em Java da Receita Federal. Não é u
 | --- | --- |
 | Fonte oficial | [ReceitaFederal/calculadora-rtc-simples-nacional](https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional) |
 | Commit pinado | [`a926d5a76095ac0295a6612a9a54db7ffead2396`](https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional/commit/a926d5a76095ac0295a6612a9a54db7ffead2396) |
-| Flyway do banco | [regime regular `f1eebd7`](https://github.com/ReceitaFederal/calculadora-rtc-regime-regular/commit/f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4), mesma licença MIT |
-| Licença do Java | MIT, Copyright (c) 2026 Receita Federal do Brasil — [LICENSE-RECEITA.md](LICENSE-RECEITA.md) |
-| Licença desta lib | MIT, Copyright (c) 2026 Garuso Cruz — [LICENSE](LICENSE) |
+| Nossa licença | MIT, Copyright (c) 2026 Garuso Cruz — [LICENSE](LICENSE) |
+| Licença do Java do pin | MIT, Copyright (c) 2026 Receita Federal do Brasil — [LICENSE-RECEITA.md](LICENSE-RECEITA.md) |
+| Licença do Flyway do pin | [regime regular `f1eebd7`](https://github.com/ReceitaFederal/calculadora-rtc-regime-regular/commit/f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4), a mesma MIT da Receita Federal — [LICENSE-RECEITA.md](LICENSE-RECEITA.md) |
+| Cobertura desta lib | 94,94% das sentenças Python |
+| Cobertura do pin | 90,56% das linhas Java |
 
 Esta biblioteca não emite nota, não assina XML e não chama a Sefin.
 
@@ -111,7 +121,8 @@ O `scripts/hooks/pre-push.sh` completo, log em `.cache/pre-push.log`, terminou `
 | --- | --- |
 | Maven test | a suíte Java do pin passou |
 | Pytest | 481 passaram, 10,02 s |
-| Cobertura | 94,94% de 2489 sentenças. O mínimo é 80% |
+| Cobertura Python | 94,94% de 2489 sentenças. O mínimo desta lib é 80% |
+| Cobertura Java do pin | 90,56% de 1853 linhas (1678 cobertas). JaCoCo do `mvn test` daquele commit, sem a classe `*Application`, como no `pom.xml` oficial. O workflow oficial exige 80% de linhas |
 | Java no corte daquele momento | 180 unitários, 32 e2e |
 | Python no relatório | 953 chaves |
 | Sem par | 0 |
