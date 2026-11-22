@@ -1,15 +1,15 @@
-# Pull request para main. Equivalência e quality gates. Publish só com _RUN_PUBLISH=1.
-# O push na main usa cloudbuild-prod.yaml.
+# Pull request para main. Equivalência e quality gates. Não publica.
+# O push na main usa cloudbuild-prod.yaml e publica a versão do pyproject no PyPI.
+# O comentário da pull request sai em report-pr.
 substitutions:
   _LIB_NAME: calculadora_rtc_simples_nacional
   _ENVIRONMENT: pr
   _REGION: us-central1
-  _PYTHON_REPO: lynko-python
   _RUN_TERRAFORM: "0"
   _RUN_PUBLISH: "0"
   _GITHUB_OWNER: garusocruz
   _GITHUB_REPO: calculadora-rtc-simples-nacional
-  _PUBLISH_SA_EMAIL: ""
+  _CONTEXT: calculadora-rtc-simples-nacional
 
 timeout: 3600s
 
@@ -21,6 +21,7 @@ steps:
   - id: equivalencia
     name: eclipse-temurin:25-jdk
     waitFor: ["-"]
+    allowFailure: true
     entrypoint: bash
     args:
       - -c
@@ -32,11 +33,18 @@ steps:
         python3 -m venv /opt/venv
         /opt/venv/bin/pip install pytest pytest-cov
         export PATH="/opt/venv/bin:$$PATH"
+        mkdir -p /workspace/.ci/steps
+        set +e
         bash scripts/equivalencia.sh
+        code=$$?
+        set -e
+        echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/equivalencia.exit
+        exit "$${code}"
 
   - id: quality-gates
     name: eclipse-temurin:25-jdk
     waitFor: ["equivalencia"]
+    allowFailure: true
     entrypoint: bash
     env:
       - COVERAGE_FAIL_UNDER=80
@@ -51,39 +59,43 @@ steps:
         mkdir -p /workspace/.ci/steps /workspace/.ci/trivy-cache
         chmod +x scripts/ci-quality-gates.sh scripts/run-trivy-fs.sh scripts/hooks/*.sh
         export TRIVY_CACHE_DIR=/workspace/.ci/trivy-cache
+        set +e
         bash scripts/ci-quality-gates.sh cb
+        code=$$?
+        set -e
+        echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/quality-gates.exit
+        exit "$${code}"
 
-  - id: publish
-    name: python:3.12-slim
+  - id: report-pr
+    allowFailure: true
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     waitFor: ["quality-gates"]
     entrypoint: bash
     env:
-      - GCP_PROJECT=$PROJECT_ID
       - PROJECT_ID=$PROJECT_ID
-      - GCP_REGION=$_REGION
-      - PYTHON_ARTIFACT_REPO=$_PYTHON_REPO
-      - LIB_ID=$_LIB_NAME
-      - PUBLISH_SA_EMAIL=$_PUBLISH_SA_EMAIL
+      - BUILD_ID=$BUILD_ID
       - COMMIT_SHA=$COMMIT_SHA
       - SHORT_SHA=$SHORT_SHA
-      - BRANCH_NAME=$BRANCH_NAME
-      - REF_NAME=$REF_NAME
       - _ENVIRONMENT=$_ENVIRONMENT
+      - _REGION=$_REGION
+      - _PR_NUMBER=$_PR_NUMBER
       - _GITHUB_OWNER=$_GITHUB_OWNER
       - _GITHUB_REPO=$_GITHUB_REPO
+      - _CONTEXT=$_CONTEXT
     args:
       - -c
       - |
         set -euo pipefail
-        if [ "${_RUN_PUBLISH}" != "1" ]; then
-          echo "skip publish (_RUN_PUBLISH=${_RUN_PUBLISH})"
-          exit 0
-        fi
-        if [ -n "${_PUBLISH_SA_EMAIL}" ]; then
-          export PUBLISH_SA_EMAIL="${_PUBLISH_SA_EMAIL}"
-          export GOOGLE_IMPERSONATE_SERVICE_ACCOUNT="${_PUBLISH_SA_EMAIL}"
-        fi
-        apt-get update -qq && apt-get install -y -qq git rsync curl ca-certificates python3 >/dev/null
-        SHA="$${SHORT_SHA:-$$(git rev-parse --short=7 HEAD)}"
-        chmod +x deploy/scripts/*.sh
-        ./deploy/scripts/publish-self.sh --env "${_ENVIRONMENT}" --sha "$${SHA}" --lib-id "${_LIB_NAME}"
+        chmod +x deploy/scripts/report-pr-status.sh
+        bash deploy/scripts/report-pr-status.sh
+
+  - id: pipeline-gate
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["report-pr"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        chmod +x deploy/scripts/pipeline-gate.sh
+        exec bash deploy/scripts/pipeline-gate.sh
