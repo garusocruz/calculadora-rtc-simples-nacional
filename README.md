@@ -1,32 +1,28 @@
 # calculadora-rtc-simples-nacional
 
-**Nossas** — esta releitura em Python. MIT, Copyright (c) 2026 Garuso Cruz.
+Cálculo de CBS e IBS do Simples Nacional, em Python. É uma releitura da calculadora Java da Receita Federal, validada contra a suíte de testes dela no commit pinado. Não é um fork: o código Java não entra neste repositório.
+
+**Nossas** (esta releitura em Python, MIT, Copyright (c) 2026 Garuso Cruz)
 
 [![versão 0.1.0](https://img.shields.io/badge/vers%C3%A3o-0.1.0-blue)](https://github.com/garusocruz/calculadora-rtc-simples-nacional)
 [![nossa licença MIT](https://img.shields.io/badge/nossa%20licen%C3%A7a-MIT%20Garuso%20Cruz-green)](LICENSE)
 [![cobertura Python 94,94%](https://img.shields.io/badge/cobertura%20Python-94%2C94%25-brightgreen)](#ultima-validacao)
-[![Cloud Build equivalência](https://img.shields.io/badge/Cloud%20Build-equival%C3%AAncia-1a73e8?logo=googlecloud&logoColor=white)](cloudbuild.yaml)
+[![Cloud Build: cloudbuild.yaml, sem trigger](https://img.shields.io/badge/Cloud%20Build-cloudbuild.yaml%2C%20sem%20trigger-lightgrey?logo=googlecloud&logoColor=white)](cloudbuild.yaml)
 
-**Do pin oficial** — duas obras, a mesma licença MIT, Copyright (c) 2026 Receita Federal do Brasil: o Java do Simples `a926d5a7` e o Flyway do regime regular `f1eebd7`. Não é a licença desta lib.
+**Do pin oficial** (calculadora Java do Simples, commit `a926d5a7`, e Flyway do regime regular, commit `f1eebd7`; as duas obras são MIT, Copyright (c) 2026 Receita Federal do Brasil)
 
 [![pin oficial a926d5a7](https://img.shields.io/badge/pin%20oficial-a926d5a7-orange)](https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional/commit/a926d5a76095ac0295a6612a9a54db7ffead2396)
-[![Java do pin MIT](https://img.shields.io/badge/Java%20do%20pin-MIT%20Receita%20Federal-blue)](LICENSE-RECEITA.md)
-[![Flyway do pin MIT](https://img.shields.io/badge/Flyway%20do%20pin-MIT%20Receita%20Federal-blue)](LICENSE-RECEITA.md)
+[![Java e Flyway do pin MIT](https://img.shields.io/badge/Java%20e%20Flyway%20do%20pin-MIT%20Receita%20Federal-blue)](LICENSE-RECEITA.md)
 [![cobertura Java do pin 90,56%](https://img.shields.io/badge/cobertura%20Java%20do%20pin-90%2C56%25-brightgreen)](#ultima-validacao)
 
-Releitura em Python da calculadora oficial em Java da Receita Federal. Não é um fork: o código Java não entra neste repositório. O cálculo segue o commit pinado abaixo.
+As duas coberturas medem unidades diferentes: a nossa conta sentenças Python (mínimo 80%) e a do pin conta linhas Java no JaCoCo (mínimo oficial 80%). O detalhe está em [Última validação](#ultima-validacao).
 
 | | |
 | --- | --- |
 | Fonte oficial | [ReceitaFederal/calculadora-rtc-simples-nacional](https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional) |
 | Commit pinado | [`a926d5a76095ac0295a6612a9a54db7ffead2396`](https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional/commit/a926d5a76095ac0295a6612a9a54db7ffead2396) |
-| Nossa licença | MIT, Copyright (c) 2026 Garuso Cruz — [LICENSE](LICENSE) |
-| Licença do Java do pin | MIT, Copyright (c) 2026 Receita Federal do Brasil — [LICENSE-RECEITA.md](LICENSE-RECEITA.md) |
-| Licença do Flyway do pin | [regime regular `f1eebd7`](https://github.com/ReceitaFederal/calculadora-rtc-regime-regular/commit/f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4), a mesma MIT da Receita Federal — [LICENSE-RECEITA.md](LICENSE-RECEITA.md) |
-| Cobertura desta lib | 94,94% das sentenças Python |
-| Cobertura do pin | 90,56% das linhas Java |
-
-Esta biblioteca não emite nota, não assina XML e não chama a Sefin.
+| Flyway do pin | [regime regular `f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4`](https://github.com/ReceitaFederal/calculadora-rtc-regime-regular/commit/f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4) |
+| Licenças | [LICENSE](LICENSE) (nossa) e [LICENSE-RECEITA.md](LICENSE-RECEITA.md) (Receita, sobre o Java do pin e o Flyway) |
 
 ## Índice
 
@@ -38,11 +34,13 @@ Esta biblioteca não emite nota, não assina XML e não chama a Sefin.
 - [Consumo](#consumo)
 - [Licença](#licenca)
 
-A lib não sobe API. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`.
+## Fora do escopo
 
-O banco é o `calculadora-pro.db` do regime regular. O Flyway que o gera está em https://github.com/ReceitaFederal/calculadora-rtc-regime-regular, pin `f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4`. A política numérica é o mesmo `arredondamento.py` das duas libs, byte a byte.
+A lib não sobe API, não emite nota, não assina XML, não chama a Sefin e não publica pacote. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`.
 
-O DANFSe não faz parte deste repositório nem do Java do Simples. O PDF da NFS-e é o módulo Go `danfse-service`, em https://github.com/ReceitaFederal/calculadora-rtc-gerador-danfse, pin `8d79e6b2f7fad6375340afcb51c85ed370c64a14`.
+O banco é o `calculadora-pro.db` do regime regular, gerado pelo Flyway de https://github.com/ReceitaFederal/calculadora-rtc-regime-regular no pin `f1eebd7`. A política numérica é o mesmo `arredondamento.py` das duas libs, byte a byte.
+
+O DANFSe também fica de fora. O PDF da NFS-e é o módulo Go `danfse-service`, em https://github.com/ReceitaFederal/calculadora-rtc-gerador-danfse, pin `8d79e6b2f7fad6375340afcb51c85ed370c64a14`.
 
 <a id="arquitetura"></a>
 
@@ -86,7 +84,7 @@ A lib abre o SQLite em modo somente leitura. O caminho entra por `CALC_DB`. Sem 
 
 ## Equivalência
 
-O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O Cloud Build dispara o mesmo script pelo arquivo `cloudbuild.yaml`. Os triggers, no plano de delivery da fundação, são `calculadora-rtc-simples-nacional-pr` (pull request para `main`) e `calculadora-rtc-simples-nacional-main` (push em `main`). Não há workflow do GitHub Actions. O build não publica pacote.
+O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O `cloudbuild.yaml` roda o mesmo script. Os triggers ainda não existem. Os nomes previstos são `calculadora-rtc-simples-nacional-pr` (pull request para `main`) e `calculadora-rtc-simples-nacional-main` (push em `main`). Não há workflow do GitHub Actions. O build não publica pacote.
 
 ```bash
 export PATH="${HOME}/.local/bin:${HOME}/.asdf/shims:${PATH}"
@@ -113,9 +111,7 @@ O pytest grava `junit_family = legacy` para o `classname` e o `name` saírem igu
 
 ## Última validação
 
-Data: 22 de novembro de 2026. O repositório é https://github.com/garusocruz/calculadora-rtc-simples-nacional. O check remoto ainda é o script local. O Cloud Build grava o status quando o plano de delivery da fundação estiver aplicado.
-
-O `scripts/hooks/pre-push.sh` completo, log em `.cache/pre-push.log`, terminou `pre-push OK`.
+Data: 22 de novembro de 2026. Sem trigger do Cloud Build, a única verificação é o script local: o `scripts/hooks/pre-push.sh` completo, com saída salva em `.cache/pre-push.log`, terminou em `pre-push OK`.
 
 | Checagem | Saída |
 | --- | --- |
@@ -129,7 +125,7 @@ O `scripts/hooks/pre-push.sh` completo, log em `.cache/pre-push.log`, terminou `
 | Resultado diferente | 0 |
 | Frase final | `Equivalência: a mesma suíte passou nas duas.` |
 
-Depois desse log, arquitetura e dependências do núcleo passaram a contar no corte. A comparação seguinte usou o surefire já gerado e um pytest novo, sem repetir o Maven: 218 casos Java, 0 sem par, 0 com resultado diferente. Esse pytest teve 487 passaram.
+Depois desse log, arquitetura e dependências do núcleo passaram a contar no corte. A comparação seguinte usou o surefire já gerado e um pytest novo, sem repetir o Maven: 218 casos Java, 0 sem par, 0 com resultado diferente. Esse pytest teve 487 testes passando.
 
 <a id="atualizacao-do-pin"></a>
 
@@ -137,7 +133,7 @@ Depois desse log, arquitetura e dependências do núcleo passaram a contar no co
 
 A Receita não aceita pull request externo. O acompanhamento é a inscrição no repositório oficial, em Watch, com Issues, Releases e Security alerts. Pull requests e Discussions ficam desligados. O mesmo vale para o regime regular, porque o Flyway e o `arredondamento.py` vêm de lá.
 
-Os três pins oficiais estão em `lynko-workspace/initiatives/faturae/receita-rtc-pins.json`. O Simples é o padrão `OFICIAL_SHA` de `scripts/equivalencia.sh`. O Flyway é `FLYWAY_SHA`.
+Os três pins oficiais (regime regular, Simples e DANFSe) estão em `lynko-workspace/initiatives/faturae/receita-rtc-pins.json`, no repositório interno da Lynko. O Simples é o padrão `OFICIAL_SHA` de `scripts/equivalencia.sh`. O Flyway é `FLYWAY_SHA`.
 
 Quando sai um release, um alerta de segurança ou uma issue que muda regra:
 
@@ -208,7 +204,7 @@ Fachada em `consumo.py`:
 
 ## Licença
 
-Esta lib é uma releitura em Python. O código Java oficial não é copiado para este git. A licença dele vale para a obra da Receita e fica reproduzida aqui para o aviso de copyright.
+O código Java oficial não é copiado para este git. A licença dele vale para a obra da Receita e fica reproduzida aqui para o aviso de copyright.
 
 | Obra | Licença | Arquivo |
 | --- | --- | --- |
@@ -216,4 +212,4 @@ Esta lib é uma releitura em Python. O código Java oficial não é copiado para
 | Calculadora Java do Simples, commit `a926d5a76095ac0295a6612a9a54db7ffead2396` | MIT, Copyright (c) 2026 Receita Federal do Brasil | [LICENSE-RECEITA.md](LICENSE-RECEITA.md) |
 | Flyway e banco do regime regular, commit `f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4` | MIT, Copyright (c) 2026 Receita Federal do Brasil | [LICENSE-RECEITA.md](LICENSE-RECEITA.md) |
 
-O texto MIT da Receita exige que o aviso de copyright e a permissão acompanhem cópias substanciais daquela obra. A releitura conserva esse aviso. Não substitui a licença desta lib.
+O texto MIT da Receita exige que o aviso de copyright e a permissão acompanhem cópias substanciais daquela obra. A releitura conserva esse aviso, e a licença desta lib continua sendo a MIT de Garuso Cruz.
