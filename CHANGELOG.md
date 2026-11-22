@@ -31,3 +31,10 @@ A `0.2.0` ficou na `main` (`40e96bb`). Esta versão lista o que entrou depois.
 - Comenta a pull request com o resultado do build.
 - Documenta o fluxo de publicação e do comentário.
 - Instala o Python no passo que comenta a pull request.
+
+## 0.3.1
+
+A `0.3.0` ficou na `main` (`cf49000`). Esta versão lista o que entrou depois.
+
+- Mostra `report-pr` e `pipeline-gate` no build da `main`, depois do publicar.
+- O comentário da pull request mergeada lista equivalência, quality gate e publicar.
