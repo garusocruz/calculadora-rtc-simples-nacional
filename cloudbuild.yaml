@@ -1,0 +1,24 @@
+# Equivalência com a calculadora oficial da Receita.
+# O Cloud Build dispara este arquivo em pull request e em push na main.
+# Não publica pacote e não aplica Terraform.
+timeout: 3600s
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+steps:
+  - id: equivalencia
+    name: eclipse-temurin:25-jdk
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -qq
+        apt-get install -y -qq python3 python3-pip python3-venv git ca-certificates
+        python3 -m venv /opt/venv
+        /opt/venv/bin/pip install pytest pytest-cov
+        export PATH="/opt/venv/bin:$$PATH"
+        bash scripts/equivalencia.sh

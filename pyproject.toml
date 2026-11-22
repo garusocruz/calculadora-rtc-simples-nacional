@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "calculadora-rtc-simples-nacional"
+version = "0.1.0"
+description = "Cálculo de CBS e IBS do Simples Nacional. Transcrição em Python da calculadora pública da Receita Federal."
+authors = ["Garuso Cruz <garustoec@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "calculadora_rtc_simples_nacional" }]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+pytest-cov = "^5.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+junit_family = "legacy"
+addopts = "--cov=calculadora_rtc_simples_nacional --cov-fail-under=80 --cov-report=term-missing"
