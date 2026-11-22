@@ -24,11 +24,18 @@ def caminho() -> Path:
 class _Conexao(sqlite3.Connection):
     # O with do sqlite3 confirma a transação e deixa o arquivo aberto.
     # No Cloud Build o limite estoura no meio da suíte.
+    # Um with interno da mesma conexão não pode fechá-la: o cálculo ainda a usa.
+    def __enter__(self):
+        self._withs = getattr(self, "_withs", 0) + 1
+        return super().__enter__()
+
     def __exit__(self, tipo, valor, rastreio):
         try:
             return super().__exit__(tipo, valor, rastreio)
         finally:
-            self.close()
+            self._withs -= 1
+            if self._withs <= 0:
+                self.close()
 
 
 def conectar() -> sqlite3.Connection:
