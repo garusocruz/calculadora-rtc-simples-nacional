@@ -11,7 +11,7 @@ This lib does not apply Terraform and does not publish to Artifact Registry. Tri
 | `calculadora-rtc-simples-nacional-pr` | `cloudbuild.yaml` | pull request to `main` |
 | `calculadora-rtc-simples-nacional-main` | `cloudbuild-prod.yaml` | push to `main` |
 
-`equivalencia` → `quality-gates` → `report-pr` → `pipeline-gate`. The main pipeline adds `publicar` no PyPI.
+Na pull request: `equivalencia` → `quality-gates` → `report-pr` → `pipeline-gate`. Na main: `equivalencia` → `quality-gates` → `publicar` → `report-pr` → `pipeline-gate`.
 
 ## Gates
 

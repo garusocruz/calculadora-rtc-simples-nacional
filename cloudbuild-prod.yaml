@@ -8,6 +8,7 @@ substitutions:
   _RUN_PUBLISH: "1"
   _GITHUB_OWNER: garusocruz
   _GITHUB_REPO: calculadora-rtc-simples-nacional
+  _CONTEXT: calculadora-rtc-simples-nacional
 
 timeout: 3600s
 
@@ -24,6 +25,7 @@ steps:
   - id: equivalencia
     name: eclipse-temurin:25-jdk
     waitFor: ["-"]
+    allowFailure: true
     entrypoint: bash
     args:
       - -c
@@ -35,11 +37,18 @@ steps:
         python3 -m venv /opt/venv
         /opt/venv/bin/pip install pytest pytest-cov
         export PATH="/opt/venv/bin:$$PATH"
+        mkdir -p /workspace/.ci/steps
+        set +e
         bash scripts/equivalencia.sh
+        code=$$?
+        set -e
+        echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/equivalencia.exit
+        exit "$${code}"
 
   - id: quality-gates
     name: eclipse-temurin:25-jdk
     waitFor: ["equivalencia"]
+    allowFailure: true
     entrypoint: bash
     env:
       - COVERAGE_FAIL_UNDER=80
@@ -54,17 +63,25 @@ steps:
         mkdir -p /workspace/.ci/steps /workspace/.ci/trivy-cache
         chmod +x scripts/ci-quality-gates.sh scripts/run-trivy-fs.sh scripts/hooks/*.sh
         export TRIVY_CACHE_DIR=/workspace/.ci/trivy-cache
+        set +e
         bash scripts/ci-quality-gates.sh cb
+        code=$$?
+        set -e
+        echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/quality-gates.exit
+        exit "$${code}"
 
   - id: publicar
     name: python:3.12-slim
     waitFor: ["quality-gates"]
+    allowFailure: true
     secretEnv: ["PYPI_API_TOKEN"]
     entrypoint: bash
     args:
       - -c
       - |
         set -euo pipefail
+        mkdir -p /workspace/.ci/steps
+        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/publicar.exit' EXIT
         if [ "${_RUN_PUBLISH}" != "1" ]; then
           echo "skip publish (_RUN_PUBLISH=${_RUN_PUBLISH})"
           exit 0
@@ -100,3 +117,37 @@ steps:
         fi
         poetry config pypi-token.pypi "$$PYPI_API_TOKEN"
         poetry publish --build --no-interaction
+
+  - id: report-pr
+    allowFailure: true
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["publicar"]
+    entrypoint: bash
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - BUILD_ID=$BUILD_ID
+      - COMMIT_SHA=$COMMIT_SHA
+      - SHORT_SHA=$SHORT_SHA
+      - _ENVIRONMENT=$_ENVIRONMENT
+      - _REGION=$_REGION
+      - _GITHUB_OWNER=$_GITHUB_OWNER
+      - _GITHUB_REPO=$_GITHUB_REPO
+      - _CONTEXT=$_CONTEXT
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        apt-get update -qq && apt-get install -y -qq python3 >/dev/null
+        chmod +x deploy/scripts/report-pr-status.sh
+        bash deploy/scripts/report-pr-status.sh
+
+  - id: pipeline-gate
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["report-pr"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        chmod +x deploy/scripts/pipeline-gate.sh
+        exec bash deploy/scripts/pipeline-gate.sh
