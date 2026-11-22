@@ -36,7 +36,7 @@ As duas coberturas medem unidades diferentes: a nossa conta sentenças Python (m
 
 ## Fora do escopo
 
-A lib não sobe API, não emite nota, não assina XML e não chama a Sefin. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`. O PyPI recebe só a versão de produção, na tag `vX.Y.Z`.
+A lib não sobe API, não emite nota, não assina XML e não chama a Sefin. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`. O PyPI recebe só a versão de produção, no merge da `main`.
 
 O banco é o `calculadora-pro.db` do regime regular, gerado pelo Flyway de https://github.com/ReceitaFederal/calculadora-rtc-regime-regular no pin `f1eebd7`. A política numérica é o mesmo `arredondamento.py` das duas libs, byte a byte.
 
@@ -84,7 +84,7 @@ A lib abre o SQLite em modo somente leitura. O caminho entra por `CALC_DB`. Sem 
 
 ## Equivalência
 
-O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O `cloudbuild.yaml` roda o mesmo script. O único trigger é `calculadora-rtc-simples-nacional-prod`, na tag `vX.Y.Z`. Essa tag é a versão de produção: roda a equivalência e publica só esse pacote no PyPI. Não há trigger de pull request nem de push na `main`. Não há workflow do GitHub Actions. O trigger ainda não está aplicado.
+O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. A pull request para `main` dispara `calculadora-rtc-simples-nacional-pr` e roda o mesmo script em `cloudbuild.yaml`. Esse build não publica. O merge dispara `calculadora-rtc-simples-nacional-main`, repete a equivalência em `cloudbuild-prod.yaml` e publica no PyPI a versão do `pyproject.toml`. Se essa versão já estiver no PyPI, o build não publica de novo. Não há workflow do GitHub Actions. Os triggers ainda não estão aplicados.
 
 ```bash
 export PATH="${HOME}/.local/bin:${HOME}/.asdf/shims:${PATH}"
@@ -143,9 +143,9 @@ Quando sai um release, um alerta de segurança ou uma issue que muda regra:
 4. Cada nome que faltar é um serviço que o controller Java chama. Portar esse serviço. A fachada em `consumo.py` conserva a classe e o método Java. Por dentro, a função nova fica em snake_case.
 5. Se `arredondamento.py` mudar, a mesma alteração entra nas duas libs e o SHA-256 dos testes de cópia única é atualizado nos dois lados.
 6. Repetir o gancho até `pre-push OK`.
-7. Igualar a versão do `pyproject.toml` à versão de produção e criar a tag `vX.Y.Z`. Essa tag publica só esse pacote no PyPI.
+7. Igualar a versão do `pyproject.toml` à versão de produção e abrir a pull request para `main`. O merge publica só esse pacote no PyPI.
 
-Não se recoloca esse cálculo em `backends/faturae`. Não se publica no Artifact Registry. Não se publica pacote de rc nem a cada push.
+Não se recoloca esse cálculo em `backends/faturae`. Não se publica no Artifact Registry. Não se publica pacote de rc.
 
 <a id="instalacao"></a>
 
