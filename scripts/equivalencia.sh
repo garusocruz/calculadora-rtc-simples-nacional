@@ -33,9 +33,9 @@ fi
 
 clonar() {
   local url="$1" sha="$2" destino="$3"
-  mkdir -p "${destino}"
   if [[ ! -d "${destino}/.git" ]]; then
-    git clone --filter=blob:none "${url}" "${destino}"
+    git init "${destino}"
+    git -C "${destino}" remote add origin "${url}"
   fi
   git -C "${destino}" fetch --depth 1 origin "${sha}"
   git -C "${destino}" checkout --detach FETCH_HEAD
