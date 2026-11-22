@@ -30,3 +30,4 @@ A `0.2.0` ficou na `main` (`40e96bb`). Esta versão lista o que entrou depois.
 - Publica no PyPI e não no Artifact Registry.
 - Comenta a pull request com o resultado do build.
 - Documenta o fluxo de publicação e do comentário.
+- Instala o Python no passo que comenta a pull request.

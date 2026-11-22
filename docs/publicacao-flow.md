@@ -8,7 +8,8 @@ Escopo: `cloudbuild.yaml` na pull request e `cloudbuild-prod.yaml` no push da `m
 flowchart TD
   pr[Pull request para main] --> equiv[equivalencia]
   equiv --> qg[quality-gates]
-  qg --> comentario[report-pr]
+  qg --> py[report-pr instala python3]
+  py --> comentario[Comentário na pull request]
   comentario --> gate[pipeline-gate]
   gate --> fimPr[Não publica]
   main[Push na main] --> equivMain[equivalencia]
@@ -27,9 +28,16 @@ sequenceDiagram
   participant CB as Cloud Build
   participant CL as CHANGELOG.md
   participant Py as PyPI
+  participant SM as Secret Manager
   GH->>CB: pull request, cloudbuild.yaml, _RUN_PUBLISH=0
   CB->>CB: equivalencia e quality-gates
-  CB->>GH: report-pr com o resultado
+  CB->>CB: report-pr instala python3
+  CB->>SM: lê lynko-github-ci-token
+  alt token com Issues Write neste repositório
+    CB->>GH: comenta a pull request
+  else token sem este repositório
+    CB-->>GH: não comenta e segue
+  end
   CB->>CB: pipeline-gate
   GH->>CB: push na main, cloudbuild-prod.yaml, _RUN_PUBLISH=1
   CB->>CB: equivalencia e quality-gates
@@ -50,3 +58,5 @@ flowchart TD
   evento -->|push na main| producao[Publica a versão do pyproject no PyPI]
   producao --> registry[Não usa Artifact Registry]
 ```
+
+O passo `report-pr` está no `cloudbuild.yaml`. A imagem `cloud-sdk:slim` não traz `python3`, então o passo instala. O comentário lê o secret `lynko-github-ci-token`. No build `734e3d4d` o script não achou o `python3` e o GitHub respondeu 403. Sem Issues: Write neste repositório, o passo não comenta e o `pipeline-gate` segue.

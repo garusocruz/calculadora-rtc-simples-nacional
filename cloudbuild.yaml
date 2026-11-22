@@ -86,6 +86,7 @@ steps:
       - -c
       - |
         set -euo pipefail
+        apt-get update -qq && apt-get install -y -qq python3 >/dev/null
         chmod +x deploy/scripts/report-pr-status.sh
         bash deploy/scripts/report-pr-status.sh
 
