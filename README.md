@@ -147,8 +147,10 @@ Python 3.12 ou superior. Não há dependência de runtime além da biblioteca pa
 
 ```bash
 cd libs/calculadora-rtc-simples-nacional
-poetry install
+./install.sh
 ```
+
+O script cria o `.venv` na raiz (`cenv` se existir, senão `python3 -m venv`), ativa esse ambiente e roda `poetry install --with dev`. Em outro shell: `source .venv/bin/activate`.
 
 O `calculadora-pro.db` é gerado pelo gancho, com o Flyway do regime regular, em `.cache/oficial/java/calculadora/db/calculadora-pro.db`.
 
