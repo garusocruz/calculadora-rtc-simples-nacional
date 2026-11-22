@@ -1,0 +1,53 @@
+# Trivy — calculadora RTC (org baseline; pin TRIVY_VERSION in scripts/ci-quality-gates.sh)
+# Policy shape matches lynko-terraform/docs/trivy.md
+
+timeout: 10m0s
+
+severity:
+  - HIGH
+  - CRITICAL
+
+scan:
+  scanners:
+    - vuln
+    - secret
+    - misconfig
+  detection-priority: precise
+  parallel: 4
+  skip-dirs:
+    - .git
+    - .ci
+    - .cache
+    - .venv
+    - node_modules
+    - .terraform
+    - dist
+    - build
+    - calculadora_rtc_regime_regular.egg-info
+    - calculadora_rtc_simples_nacional.egg-info
+  skip-files:
+    - "**/*.tfstate"
+    - "**/*.tfstate.*"
+    - "**/terraform.tfvars"
+    - "**/.terraform.lock.hcl"
+    - "**/poetry.lock"
+
+pkg:
+  types:
+    - os
+    - library
+
+vulnerability:
+  ignore-unfixed: true
+
+misconfiguration:
+  include-non-failures: false
+  scanners:
+    - terraform
+    - dockerfile
+
+secret:
+  config: trivy-secret.yaml
+
+format: table
+exit-code: 0

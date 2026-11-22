@@ -1,4 +1,4 @@
-# Push na main. Roda a equivalência e publica a versão do pyproject no PyPI.
+# Push na main. Quality gates, equivalência e a versão do pyproject no PyPI.
 # É a única versão publicada: a de produção. Não publica no Artifact Registry.
 timeout: 3600s
 
@@ -12,7 +12,27 @@ availableSecrets:
       env: PYPI_API_TOKEN
 
 steps:
+  - id: quality-gates
+    name: eclipse-temurin:25-jdk
+    entrypoint: bash
+    env:
+      - COVERAGE_FAIL_UNDER=80
+      - PYTEST_VENV=/workspace/.ci/pytest-venv
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -qq
+        apt-get install -y -qq python3 python3-pip python3-venv git ca-certificates curl
+        mkdir -p /workspace/.ci/steps /workspace/.ci/trivy-cache
+        chmod +x scripts/ci-quality-gates.sh scripts/run-trivy-fs.sh scripts/hooks/*.sh
+        export TRIVY_CACHE_DIR=/workspace/.ci/trivy-cache
+        bash scripts/ci-quality-gates.sh cb
+    waitFor: ["-"]
+
   - id: equivalencia
+    waitFor: ["quality-gates"]
     name: eclipse-temurin:25-jdk
     entrypoint: bash
     args:

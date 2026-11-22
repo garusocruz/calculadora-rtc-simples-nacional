@@ -1,0 +1,12 @@
+# Structured Trivy suppressions (statement + expired_at required).
+# https://trivy.dev/docs/latest/guide/configuration/filtering/
+
+# misconfigurations:
+#   - id: GCP-NNNN
+#     statement: "why"
+#     expired_at: 2026-12-31T23:59:59Z
+
+# vulnerabilities:
+#   - id: CVE-YYYY-NNNN
+#     statement: "why"
+#     expired_at: 2026-12-31T23:59:59Z
