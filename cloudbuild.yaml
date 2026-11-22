@@ -18,8 +18,25 @@ options:
   machineType: E2_MEDIUM
 
 steps:
+  - id: equivalencia
+    name: eclipse-temurin:25-jdk
+    waitFor: ["-"]
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -qq
+        apt-get install -y -qq python3 python3-pip python3-venv git ca-certificates curl
+        python3 -m venv /opt/venv
+        /opt/venv/bin/pip install pytest pytest-cov
+        export PATH="/opt/venv/bin:$$PATH"
+        bash scripts/equivalencia.sh
+
   - id: quality-gates
     name: eclipse-temurin:25-jdk
+    waitFor: ["equivalencia"]
     entrypoint: bash
     env:
       - COVERAGE_FAIL_UNDER=80
@@ -35,26 +52,10 @@ steps:
         chmod +x scripts/ci-quality-gates.sh scripts/run-trivy-fs.sh scripts/hooks/*.sh
         export TRIVY_CACHE_DIR=/workspace/.ci/trivy-cache
         bash scripts/ci-quality-gates.sh cb
-    waitFor: ["equivalencia"]
-
-  - id: equivalencia
-    waitFor: ["-"]
-    name: eclipse-temurin:25-jdk
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        export DEBIAN_FRONTEND=noninteractive
-        apt-get update -qq
-        apt-get install -y -qq python3 python3-pip python3-venv git ca-certificates curl
-        python3 -m venv /opt/venv
-        /opt/venv/bin/pip install pytest pytest-cov
-        export PATH="/opt/venv/bin:$$PATH"
-        bash scripts/equivalencia.sh
 
   - id: publish
     name: python:3.12-slim
+    waitFor: ["quality-gates"]
     entrypoint: bash
     env:
       - GCP_PROJECT=$PROJECT_ID
@@ -86,4 +87,3 @@ steps:
         SHA="$${SHORT_SHA:-$$(git rev-parse --short=7 HEAD)}"
         chmod +x deploy/scripts/*.sh
         ./deploy/scripts/publish-self.sh --env "${_ENVIRONMENT}" --sha "$${SHA}" --lib-id "${_LIB_NAME}"
-    waitFor: ["quality-gates"]
