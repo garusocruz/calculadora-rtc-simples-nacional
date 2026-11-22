@@ -12,6 +12,8 @@ import re
 import tokenize
 from pathlib import Path
 
+import pytest
+
 _PACOTE = Path(__file__).resolve().parents[1] / "calculadora_rtc_simples_nacional"
 _POLITICA = _PACOTE / "arredondamento.py"
 _OUTRA = (
@@ -96,5 +98,7 @@ def test_classe_eACopiaUnicaDosDoisProjetos(record_xml_attribute) -> None:
 
 
 def test_testeDaClasse_eACopiaUnicaDosDoisProjetos(record_xml_attribute) -> None:
+    if not _OUTRA.is_file():
+        pytest.skip("a outra lib não está neste checkout")
     _junit(record_xml_attribute, _FQCN_COPIA, "testeDaClasse_eACopiaUnicaDosDoisProjetos")
     assert _sha256(_OUTRA) == _SHA256
