@@ -1,0 +1,7 @@
+# Committed as backend.tf (partial). Init with:
+#   terraform init -backend-config="bucket=lynko-508200-tfstate" \
+#     -backend-config="prefix=libs/fast_flow"
+#
+# terraform {
+#   backend "gcs" {}
+# }

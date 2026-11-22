@@ -33,12 +33,41 @@ fi
 
 clonar() {
   local url="$1" sha="$2" destino="$3"
-  mkdir -p "${destino}"
   if [[ ! -d "${destino}/.git" ]]; then
-    git clone --filter=blob:none "${url}" "${destino}"
+    git init "${destino}"
+    git -C "${destino}" remote add origin "${url}"
   fi
   git -C "${destino}" fetch --depth 1 origin "${sha}"
   git -C "${destino}" checkout --detach FETCH_HEAD
+}
+
+garantir_wrapper() {
+  local destino="$1"
+  local props="${destino}/.mvn/wrapper/maven-wrapper.properties"
+  local jar="${destino}/.mvn/wrapper/maven-wrapper.jar"
+  if [[ -f "${jar}" ]] && wrapper_tem_classe "${jar}"; then
+    return 0
+  fi
+  local url
+  url="$(awk -F= '$1=="wrapperUrl" { sub(/\r/, "", $2); print $2; exit }' "${props}")"
+  if [[ -z "${url}" ]]; then
+    echo "O pin não declara wrapperUrl em ${props}." >&2
+    exit 1
+  fi
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "curl é necessário para baixar o Maven Wrapper." >&2
+    exit 1
+  fi
+  echo "── baixando o jar do Maven Wrapper ──"
+  curl -fsSL "${url}" -o "${jar}"
+  if ! wrapper_tem_classe "${jar}"; then
+    echo "O download não contém org.apache.maven.wrapper.MavenWrapperMain." >&2
+    exit 1
+  fi
+}
+
+wrapper_tem_classe() {
+  python3 -c 'import sys, zipfile; zipfile.ZipFile(sys.argv[1]).getinfo("org/apache/maven/wrapper/MavenWrapperMain.class")' "$1" >/dev/null 2>&1
 }
 
 echo "── equivalência: baixando ${OFICIAL_SHA} ──"
@@ -48,6 +77,7 @@ if [[ "${FLYWAY_URL}" != "${OFICIAL_URL}" || "${FLYWAY_SHA}" != "${OFICIAL_SHA}"
   rm -rf "${JAVA_DIR}/flyway"
   cp -a "${FLYWAY_DIR}/flyway" "${JAVA_DIR}/flyway"
 fi
+garantir_wrapper "${JAVA_DIR}"
 
 mkdir -p "${JAVA_DIR}/calculadora/db" "${RELATORIO}"
 echo "── gerando calculadora-pro.db com o Flyway oficial ──"
@@ -86,6 +116,7 @@ for caminho in sorted(java_dir.glob("TEST-*.xml")):
         classe = caso.get("classname") or ""
         nome = caso.get("name") or ""
         texto = f"{classe} {nome} {fqcn_arquivo}"
+        # O caso Java só confere o arquivo de teste da calculadora oficial.
         if (
             "Controller" in texto
             or ".controller." in fqcn_arquivo
@@ -93,6 +124,7 @@ for caminho in sorted(java_dir.glob("TEST-*.xml")):
             or "retorna400" in nome
             or fqcn_arquivo.endswith("Teste_LoteArredondamento")
             or fqcn_arquivo.endswith("Teste_SerializacaoNaoAlteraNumero")
+            or nome == "testeDaClasse_eACopiaUnicaDosDoisProjetos"
         ):
             continue
         tipo = "e2e" if "testesintegracao" in (classe + fqcn_arquivo) else "unitario"

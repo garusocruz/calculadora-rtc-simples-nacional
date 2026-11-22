@@ -1,0 +1,15 @@
+project_id = "lynko-508200"
+region     = "us-central1"
+
+# Foundation owns the shared Python AR and lib Cloud Build triggers.
+python_registry_id     = "lynko-python"
+create_python_registry = false
+
+github_owner = "garusocruz"
+cloudbuild_connection_id = "projects/lynko-508200/locations/us-central1/connections/lynko-github"
+cloudbuild_repository_id = "projects/lynko-508200/locations/us-central1/connections/lynko-github/repositories/garusocruz-fast_flow"
+
+# Triggers: adapters/gcp/delivery/lib_cicd in lynko-terraform (not here).
+create_feature_triggers = false
+create_rc_triggers      = false
+create_prod_triggers    = false

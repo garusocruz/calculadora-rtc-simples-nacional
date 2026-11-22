@@ -1,7 +1,6 @@
-"""Arquitetura da política numérica na lib Python.
+"""Arquitetura da política numérica nesta lib.
 
-Só ``arredondamento.py`` arredonda. O mesmo arquivo, byte a byte, vale para o
-regime regular e para o Simples.
+Só ``arredondamento.py`` arredonda. O SHA-256 deste arquivo fica fixo aqui.
 """
 
 from __future__ import annotations
@@ -14,12 +13,6 @@ from pathlib import Path
 
 _PACOTE = Path(__file__).resolve().parents[1] / "calculadora_rtc_simples_nacional"
 _POLITICA = _PACOTE / "arredondamento.py"
-_OUTRA = (
-    Path(__file__).resolve().parents[2]
-    / "calculadora-rtc-regime-regular"
-    / "calculadora_rtc_regime_regular"
-    / "arredondamento.py"
-)
 _SHA256 = "6f0defcc9d529267ba8b1c6268bc66ad4a7753392f1778fccb94d58a78b54223"
 _FQCN_POLITICA = "br.gov.serpro.rtc.testesunitarios.shared.Teste_ArquiteturaArredondamento"
 _FQCN_COPIA = "br.gov.serpro.rtc.testesunitarios.shared.Teste_ArredondamentoUtilsCopiaUnica"
@@ -93,8 +86,3 @@ arredondar_valor_fiscal(valor)
 def test_classe_eACopiaUnicaDosDoisProjetos(record_xml_attribute) -> None:
     _junit(record_xml_attribute, _FQCN_COPIA, "classe_eACopiaUnicaDosDoisProjetos")
     assert _sha256(_POLITICA) == _SHA256
-
-
-def test_testeDaClasse_eACopiaUnicaDosDoisProjetos(record_xml_attribute) -> None:
-    _junit(record_xml_attribute, _FQCN_COPIA, "testeDaClasse_eACopiaUnicaDosDoisProjetos")
-    assert _sha256(_OUTRA) == _SHA256

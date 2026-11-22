@@ -1,0 +1,36 @@
+# Local git hooks. Same pattern as fast_flow.
+#
+# Install once:
+#   bash scripts/bootstrap-dev.sh
+#
+# CB merge gate remains scripts/ci-quality-gates.sh plus scripts/equivalencia.sh.
+
+repos:
+  - repo: local
+    hooks:
+      - id: calculadora-rtc-simples-nacional-pre-commit
+        name: patterns (staged)
+        entry: bash scripts/hooks/pre-commit.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: calculadora-rtc-simples-nacional-pre-push
+        name: quality-gates (local)
+        entry: bash scripts/hooks/pre-push.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: no-cursor-trailer
+        name: no Cursor attribution in commit message
+        language: pygrep
+        entry: '(?i)(co-authored-by:\s*cursor|cursoragent@cursor\.com|made with cursor)'
+        stages: [commit-msg]
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, chore, ci, docs, refactor, test, build, style, perf, revert]
