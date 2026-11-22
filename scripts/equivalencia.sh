@@ -41,6 +41,35 @@ clonar() {
   git -C "${destino}" checkout --detach FETCH_HEAD
 }
 
+garantir_wrapper() {
+  local destino="$1"
+  local props="${destino}/.mvn/wrapper/maven-wrapper.properties"
+  local jar="${destino}/.mvn/wrapper/maven-wrapper.jar"
+  if [[ -f "${jar}" ]] && wrapper_tem_classe "${jar}"; then
+    return 0
+  fi
+  local url
+  url="$(awk -F= '$1=="wrapperUrl" { sub(/\r/, "", $2); print $2; exit }' "${props}")"
+  if [[ -z "${url}" ]]; then
+    echo "O pin não declara wrapperUrl em ${props}." >&2
+    exit 1
+  fi
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "curl é necessário para baixar o Maven Wrapper." >&2
+    exit 1
+  fi
+  echo "── baixando o jar do Maven Wrapper ──"
+  curl -fsSL "${url}" -o "${jar}"
+  if ! wrapper_tem_classe "${jar}"; then
+    echo "O download não contém org.apache.maven.wrapper.MavenWrapperMain." >&2
+    exit 1
+  fi
+}
+
+wrapper_tem_classe() {
+  python3 -c 'import sys, zipfile; zipfile.ZipFile(sys.argv[1]).getinfo("org/apache/maven/wrapper/MavenWrapperMain.class")' "$1" >/dev/null 2>&1
+}
+
 echo "── equivalência: baixando ${OFICIAL_SHA} ──"
 clonar "${OFICIAL_URL}" "${OFICIAL_SHA}" "${JAVA_DIR}"
 if [[ "${FLYWAY_URL}" != "${OFICIAL_URL}" || "${FLYWAY_SHA}" != "${OFICIAL_SHA}" ]]; then
@@ -48,6 +77,7 @@ if [[ "${FLYWAY_URL}" != "${OFICIAL_URL}" || "${FLYWAY_SHA}" != "${OFICIAL_SHA}"
   rm -rf "${JAVA_DIR}/flyway"
   cp -a "${FLYWAY_DIR}/flyway" "${JAVA_DIR}/flyway"
 fi
+garantir_wrapper "${JAVA_DIR}"
 
 mkdir -p "${JAVA_DIR}/calculadora/db" "${RELATORIO}"
 echo "── gerando calculadora-pro.db com o Flyway oficial ──"
