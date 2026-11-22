@@ -121,7 +121,7 @@ O `scripts/hooks/pre-push.sh` completo, log em `.cache/pre-push.log`, terminou `
 | --- | --- |
 | Maven test | a suíte Java do pin passou |
 | Pytest | 481 passaram, 10,02 s |
-| Cobertura Python | 94,94% de 2489 sentenças. O mínimo desta lib é 80% |
+| Cobertura Python | 94,94% de 2490 sentenças. O mínimo desta lib é 80% |
 | Cobertura Java do pin | 90,56% de 1853 linhas (1678 cobertas). JaCoCo do `mvn test` daquele commit, sem a classe `*Application`, como no `pom.xml` oficial. O workflow oficial exige 80% de linhas |
 | Java no corte daquele momento | 180 unitários, 32 e2e |
 | Python no relatório | 953 chaves |
