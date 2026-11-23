@@ -1,5 +1,6 @@
 # Pull request para main. Equivalência e quality gates. Não publica.
-# O push na main usa cloudbuild-prod.yaml e publica a versão do pyproject no PyPI.
+# O push na main usa cloudbuild-prod.yaml e também não publica.
+# A release vX.Y.Z usa cloudbuild-release.yaml e publica no PyPI.
 # O comentário da pull request sai em report-pr.
 substitutions:
   _LIB_NAME: calculadora_rtc_simples_nacional
