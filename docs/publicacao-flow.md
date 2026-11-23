@@ -1,6 +1,6 @@
 # Publicação da calculadora do Simples Nacional
 
-Escopo: `cloudbuild.yaml` na pull request e `cloudbuild-prod.yaml` no push da `main`. O push da `main`, com os gates verdes, grava esse build no README, publica no PyPI e abre a release `vX.Y.Z`. Não sobe para o Artifact Registry.
+Escopo: o push da `main` faz o build da lib. Se a versão é nova, abre a release `vX.Y.Z`. Essa release grava o build da `main` no README e publica no PyPI. Não sobe para o Artifact Registry.
 
 ## Fluxograma
 

@@ -1,19 +1,14 @@
-# Push na main. Equivalência e quality gates.
-# Se os gates passam, grava este build no README, publica no PyPI e abre a release vX.Y.Z.
+# Push na main. Equivalência e quality gates. Não publica no PyPI.
+# Se a versão ainda não tem release, abre vX.Y.Z com este build. O trigger da release publica.
 substitutions:
   _LIB_NAME: calculadora_rtc_simples_nacional
   _ENVIRONMENT: production
   _REGION: us-central1
   _RUN_TERRAFORM: "0"
-  _RUN_PUBLISH: "1"
+  _RUN_PUBLISH: "0"
   _GITHUB_OWNER: garusocruz
   _GITHUB_REPO: calculadora-rtc-simples-nacional
   _CONTEXT: calculadora-rtc-simples-nacional
-
-availableSecrets:
-  secretManager:
-    - versionName: projects/$PROJECT_ID/secrets/PYPI_API_TOKEN/versions/latest
-      env: PYPI_API_TOKEN
 
 timeout: 3600s
 
@@ -38,6 +33,13 @@ steps:
         /opt/venv/bin/pip install pytest pytest-cov
         export PATH="/opt/venv/bin:$$PATH"
         mkdir -p /workspace/.ci/steps
+        subject="$(git log -1 --format=%s)"
+        if [[ "$${subject}" == "docs: registra o run da release "* ]]; then
+          echo "Commit de registro. O build da lib já rodou no merge."
+          echo skip > /workspace/.ci/skip-build
+          echo 0 | tee /workspace/.ci/exit_code > /workspace/.ci/steps/equivalencia.exit
+          exit 0
+        fi
         set +e
         bash scripts/equivalencia.sh
         code=$$?
@@ -61,6 +63,11 @@ steps:
         apt-get update -qq
         apt-get install -y -qq python3 python3-pip python3-venv git ca-certificates curl
         mkdir -p /workspace/.ci/steps /workspace/.ci/trivy-cache
+        if [ -f /workspace/.ci/skip-build ]; then
+          echo "Commit de registro. Não repete o build."
+          echo 0 | tee /workspace/.ci/exit_code > /workspace/.ci/steps/quality-gates.exit
+          exit 0
+        fi
         chmod +x scripts/ci-quality-gates.sh scripts/run-trivy-fs.sh scripts/hooks/*.sh
         export TRIVY_CACHE_DIR=/workspace/.ci/trivy-cache
         set +e
@@ -93,7 +100,7 @@ steps:
         chmod +x deploy/scripts/report-pr-status.sh
         bash deploy/scripts/report-pr-status.sh
 
-  - id: atualizar-readme
+  - id: abrir-release
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     waitFor: ["quality-gates"]
     allowFailure: true
@@ -111,108 +118,18 @@ steps:
       - |
         set -euo pipefail
         mkdir -p /workspace/.ci/steps
-        eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
-        qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
-        if [ "${eq}" != "0" ] || [ "${qg}" != "0" ]; then
-          echo "Gates não passaram. Não grava o README."
-          echo 0 | tee /workspace/.ci/exit_code > /workspace/.ci/steps/atualizar-readme.exit
-          exit 0
-        fi
-        apt-get update -qq && apt-get install -y -qq python3 git curl ca-certificates >/dev/null
-        chmod +x scripts/atualizar-readme-release.sh deploy/scripts/configure-github-git.sh
-        set +e
-        bash scripts/atualizar-readme-release.sh
-        code=$$?
-        set -e
-        echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/atualizar-readme.exit
-        exit "$${code}"
-
-  - id: publicar
-    name: python:3.12-slim
-    waitFor: ["atualizar-readme"]
-    allowFailure: true
-    secretEnv: ["PYPI_API_TOKEN"]
-    entrypoint: bash
-    env:
-      - TAG_NAME=$TAG_NAME
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        mkdir -p /workspace/.ci/steps
-        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/publicar.exit' EXIT
-        if [ -f /workspace/.ci/skip-publish ]; then
-          echo "Commit de registro. Não publica."
-          exit 0
-        fi
-        if [ "${_RUN_PUBLISH}" != "1" ]; then
-          echo "skip publish (_RUN_PUBLISH=${_RUN_PUBLISH})"
-          exit 0
-        fi
-        eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
-        qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
-        if [ "${eq}" != "0" ] || [ "${qg}" != "0" ]; then
-          echo "Gates não passaram. Não publica."
-          exit 0
-        fi
-        readme="$(tr -d '[:space:]' < /workspace/.ci/steps/atualizar-readme.exit || true)"
-        if [ "$${readme}" != "0" ]; then
-          echo "README da release não foi gravado ($${readme}). Não publica."
-          exit 1
-        fi
-        export DEBIAN_FRONTEND=noninteractive
-        apt-get update -qq && apt-get install -y -qq curl ca-certificates
-        pip install -q poetry
-        nome="$$(awk -F'"' '/^name = /{print $$2; exit}' pyproject.toml)"
-        versao="$$(poetry version -s)"
-        if [ -n "${TAG_NAME}" ]; then
-          tag="$${TAG_NAME#v}"
-          if [ "$${tag}" != "$${versao}" ]; then
-            echo "A release $${TAG_NAME} não é a versão $${versao}. Não publica."
-            exit 1
-          fi
-        fi
-        codigo="$$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/$${nome}/$${versao}/json")"
-        if [[ "$${codigo}" == "200" ]]; then
-          echo "A versão $${versao} já está no PyPI."
-          exit 0
-        fi
-        if [[ "$${codigo}" != "404" ]]; then
-          echo "O PyPI respondeu $${codigo}. Não publica."
-          exit 1
-        fi
-        poetry config pypi-token.pypi "$$PYPI_API_TOKEN"
-        poetry publish --build --no-interaction
-
-  - id: abrir-release
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    waitFor: ["publicar"]
-    allowFailure: true
-    entrypoint: bash
-    env:
-      - PROJECT_ID=$PROJECT_ID
-      - COMMIT_SHA=$COMMIT_SHA
-      - TAG_NAME=$TAG_NAME
-      - _GITHUB_OWNER=$_GITHUB_OWNER
-      - _GITHUB_REPO=$_GITHUB_REPO
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        mkdir -p /workspace/.ci/steps
         trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/abrir-release.exit' EXIT
-        if [ -f /workspace/.ci/skip-publish ]; then
+        if [ -f /workspace/.ci/skip-build ]; then
           echo "Commit de registro. Não abre outra release."
           exit 0
         fi
         eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
         qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
-        pub="$(tr -d '[:space:]' < /workspace/.ci/steps/publicar.exit || true)"
-        if [ "${eq}" != "0" ] || [ "${qg}" != "0" ] || [ "${pub}" != "0" ]; then
+        if [ "${eq}" != "0" ] || [ "${qg}" != "0" ]; then
           echo "O build não ficou verde. Não abre release."
           exit 1
         fi
-        apt-get update -qq && apt-get install -y -qq git curl ca-certificates >/dev/null
+        apt-get update -qq && apt-get install -y -qq python3 git curl ca-certificates >/dev/null
         chmod +x scripts/abrir-release.sh deploy/scripts/configure-github-git.sh
         bash scripts/abrir-release.sh
 

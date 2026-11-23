@@ -1,28 +1,15 @@
 #!/usr/bin/env bash
-# Grava este build no README da main.
-# O commit de registro não abre outro ciclo. Se a main já tem a release, o build gravado fica.
-# Não imprime o token.
+# Grava no README o build da main que abriu a release.
+# Não usa o build deste trigger. Não imprime o token.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
-mkdir -p /workspace/.ci
-
-subject="$(git log -1 --format=%s)"
-if [[ "${subject}" == "docs: registra o run da release "* ]]; then
-  echo "Commit de registro do README. Não grava outro run."
-  echo skip >/workspace/.ci/skip-publish
-  exit 0
-fi
-
-if [[ -z "${TAG_NAME:-}" ]]; then
-  TAG_NAME="v$(awk -F'"' '/^version = /{print $2; exit}' pyproject.toml)"
-fi
-
+: "${TAG_NAME:?}"
 TAG="${TAG_NAME}"
 if [[ ! "${TAG}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-  echo "TAG_NAME deve ser vX.Y.Z. Veio: ${TAG:-vazio}" >&2
+  echo "TAG_NAME deve ser vX.Y.Z. Veio: ${TAG}" >&2
   exit 1
 fi
 VER="${BASH_REMATCH[1]}"
@@ -32,24 +19,53 @@ if [[ "${PYVER}" != "${VER}" ]]; then
   exit 1
 fi
 
-: "${PROJECT_ID:?}"
-: "${BUILD_ID:?}"
-SHA="${COMMIT_SHA:-$(git rev-parse HEAD)}"
 REPO="${_GITHUB_REPO:-${GITHUB_REPO:?}}"
 OWNER="${_GITHUB_OWNER:-${GITHUB_OWNER:-garusocruz}}"
-REGION="${_REGION:-${REGION:-us-central1}}"
 
 bash "${ROOT}/deploy/scripts/configure-github-git.sh"
+TOKEN_FILE="${CI_GITHUB_TOKEN_FILE:-/workspace/.ci/github_token}"
+if [[ ! -s "${TOKEN_FILE}" ]]; then
+  echo "Sem token do GitHub para ler a release." >&2
+  exit 1
+fi
+TOKEN="$(tr -d '[:space:]' < "${TOKEN_FILE}")"
+
+http="$(curl -sS -o /tmp/gh-release-get.json -w '%{http_code}' \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/${OWNER}/${REPO}/releases/tags/${TAG}")"
+if [[ "${http}" != "200" ]]; then
+  echo "GitHub respondeu ${http} ao ler a release ${TAG}." >&2
+  exit 1
+fi
+
+eval "$(python3 - /tmp/gh-release-get.json <<'PY'
+import json, shlex, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+fields = {}
+for line in (data.get("body") or "").splitlines():
+    if ": " not in line:
+        continue
+    key, value = line.split(": ", 1)
+    fields[key] = value.strip()
+for key in ("Build", "Commit", "URL"):
+    if not fields.get(key):
+        raise SystemExit(f"release sem {key} do build da main")
+print(f"MERGE_BUILD={shlex.quote(fields['Build'])}")
+print(f"MERGE_SHA={shlex.quote(fields['Commit'])}")
+print(f"MERGE_URL={shlex.quote(fields['URL'])}")
+PY
+)"
+
 git fetch origin main
-if git show "origin/main:README.md" | grep -F "Release \`${TAG}\`" >/dev/null; then
-  echo "README da main já registra ${TAG}."
+git checkout -B main origin/main
+if grep -F "${MERGE_BUILD}" README.md >/dev/null; then
+  echo "README da main já registra o build ${MERGE_BUILD}."
   exit 0
 fi
 
-URL="https://console.cloud.google.com/cloud-build/builds;region=${REGION}/${BUILD_ID}?project=${PROJECT_ID}"
 DATE="$(date -u +%Y-%m-%d)"
-
-python3 - "${ROOT}/README.md" "${TAG}" "${BUILD_ID}" "${URL}" "${DATE}" "${SHA}" <<'PY'
+python3 - README.md "${TAG}" "${MERGE_BUILD}" "${MERGE_URL}" "${DATE}" "${MERGE_SHA}" <<'PY'
 import pathlib, sys
 path, tag, build, url, date, sha = sys.argv[1:]
 text = pathlib.Path(path).read_text(encoding="utf-8")

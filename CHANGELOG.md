@@ -44,5 +44,5 @@ A `0.3.0` ficou na `main` (`cf49000`). Esta versão lista o que entrou depois.
 
 A `0.3.1` ficou na `main` (`f9c5aa3`) e no PyPI, publicada pelo trigger antigo da `main`, sem release no GitHub. Esta versão lista o que entrou depois.
 
-- O push na `main`, com os gates verdes, grava esse build no README, publica no PyPI e abre a release `vX.Y.Z`.
+- O merge na `main` faz o build da lib. A release `vX.Y.Z` publica no PyPI com esse build e grava o run no README.
 - O `install.sh` registra pre-commit, pre-push e commit-msg.
