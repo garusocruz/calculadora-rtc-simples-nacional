@@ -23,6 +23,8 @@ As duas coberturas medem unidades diferentes: a nossa conta sentenças Python (m
 | --- | --- |
 | Fonte oficial | [ReceitaFederal/calculadora-rtc-simples-nacional](https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional) |
 | Commit pinado | [`a926d5a76095ac0295a6612a9a54db7ffead2396`](https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional/commit/a926d5a76095ac0295a6612a9a54db7ffead2396) |
+| Versão oficial do pin | CalculadorTributo `1.0.2`, commit de 2026-11-20 |
+| Versão oficial do Flyway | CalculadorTributo `1.7.2` do regime regular, commit de 2026-11-19 |
 | Flyway do pin | [regime regular `f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4`](https://github.com/ReceitaFederal/calculadora-rtc-regime-regular/commit/f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4) |
 | Licenças | [LICENSE](LICENSE) (nossa) e [LICENSE-RECEITA.md](LICENSE-RECEITA.md) (Receita, sobre o Java do pin e o Flyway) |
 
@@ -39,7 +41,7 @@ As duas coberturas medem unidades diferentes: a nossa conta sentenças Python (m
 
 ## Fora do escopo
 
-A lib não sobe API, não emite nota, não assina XML e não chama a Sefin. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`. O índice público do PyPI tem a `0.3.1`. O número deste repositório não vira release no GitHub.
+A lib não sobe API, não emite nota, não assina XML e não chama a Sefin. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`. O índice público do PyPI tem a `0.4.1`. O número deste repositório não vira release no GitHub.
 
 O banco é o `calculadora-pro.db` do regime regular, gerado pelo Flyway de https://github.com/ReceitaFederal/calculadora-rtc-regime-regular no pin `f1eebd7`. A política numérica é o mesmo `arredondamento.py` das duas libs, byte a byte.
 
@@ -51,7 +53,7 @@ O cálculo do item recebe as alíquotas efetivas já resolvidas (`pIBSSN` e `pCB
 
 O resultado depende do insumo, do `calculadora-pro.db` daquele pin e da cobertura da suíte. Uso em documento fiscal exige conferência independente. A publicação do código pela Receita não homologa esta implementação.
 
-Só `arredondamento.py` quantiza, na política do pin. A comparação com o Java vale para os casos da suíte daquele commit, não para cenário que ela não executa.
+Só `arredondamento.py` quantiza, na política do pin. O texto JSON entra com `Decimal`. A conta não usa `float`. A comparação com o Java vale para os casos da suíte daquele commit, não para cenário que ela não executa.
 
 | O que | Nesta versão |
 | --- | --- |

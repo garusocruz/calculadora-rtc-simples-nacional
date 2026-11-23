@@ -85,6 +85,11 @@ steps:
           echo 0 | tee /workspace/.ci/exit_code > /workspace/.ci/steps/equivalencia.exit
           exit 0
         fi
+        if [ -f /workspace/.ci/versao-repetida ]; then
+          echo "A versão já está no PyPI. Não publica de novo."
+          echo 1 | tee /workspace/.ci/exit_code > /workspace/.ci/steps/equivalencia.exit
+          exit 1
+        fi
         set +e
         bash scripts/equivalencia.sh
         code=$$?
@@ -113,6 +118,11 @@ steps:
           echo 0 | tee /workspace/.ci/exit_code > /workspace/.ci/steps/quality-gates.exit
           exit 0
         fi
+        if [ -f /workspace/.ci/versao-repetida ]; then
+          echo "A versão já está no PyPI. Não publica de novo."
+          echo 1 | tee /workspace/.ci/exit_code > /workspace/.ci/steps/quality-gates.exit
+          exit 1
+        fi
         chmod +x scripts/ci-quality-gates.sh scripts/run-trivy-fs.sh scripts/hooks/*.sh
         export TRIVY_CACHE_DIR=/workspace/.ci/trivy-cache
         set +e
@@ -136,6 +146,10 @@ steps:
         if [ -f /workspace/.ci/skip-build ]; then
           echo "Commit do README. Não refaz o build da lib."
           exit 0
+        fi
+        if [ -f /workspace/.ci/versao-repetida ]; then
+          echo "A versão já está no PyPI. Não publica de novo."
+          exit 1
         fi
         eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
         qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
@@ -169,6 +183,10 @@ steps:
           echo "Commit do README. Não grava o README de novo."
           exit 0
         fi
+        if [ -f /workspace/.ci/versao-repetida ]; then
+          echo "A versão já está no PyPI. Não publica de novo."
+          exit 1
+        fi
         eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
         qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
         bl="$(tr -d '[:space:]' < /workspace/.ci/steps/build-lib.exit || true)"
@@ -199,6 +217,10 @@ steps:
         set -euo pipefail
         mkdir -p /workspace/.ci/steps
         trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/publicar.exit' EXIT
+        if [ -f /workspace/.ci/versao-repetida ]; then
+          echo "A versão já está no PyPI. Não publica de novo."
+          exit 1
+        fi
         if [ ! -f /workspace/.ci/skip-build ]; then
           eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
           qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"

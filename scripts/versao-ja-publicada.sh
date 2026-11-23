@@ -47,8 +47,11 @@ if ! git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" >/tmp/git-fetch-tag.lo
   exit 0
 fi
 if [[ "$(git rev-parse "HEAD^{tree}")" != "$(git rev-parse "${TAG}^{tree}")" ]]; then
-  echo "A versão ${VERSAO} já está publicada, mas esta árvore não é a da tag. A suíte segue."
-  exit 0
+  echo "A versão ${VERSAO} já está no PyPI. Esta árvore não é a da tag ${TAG}. A esteira não publica de novo." >&2
+  REPEAT="${CI_REPEAT_FILE:-/workspace/.ci/versao-repetida}"
+  mkdir -p "$(dirname "${REPEAT}")" 2>/dev/null || true
+  printf 'repetida\n' > "${REPEAT}" 2>/dev/null || true
+  exit 1
 fi
 
 mkdir -p "$(dirname "${SKIP}")"

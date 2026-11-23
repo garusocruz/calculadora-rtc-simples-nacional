@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 from typing import Any
 
 from calculadora_rtc_simples_nacional.unificado import ItemSimplesUnificadoInput
@@ -31,7 +32,7 @@ def _primeiro(obj: dict[str, Any], chaves: tuple[str, ...]) -> Any:
 def item_simples_unificado_de_json(obj: str | dict[str, Any]) -> ItemSimplesUnificadoInput:
     """``ItemSimplesUnificadoInput`` a partir de JSON (``@JsonProperty`` + ``@JsonAlias``)."""
     if isinstance(obj, str):
-        dados = json.loads(obj)
+        dados = json.loads(obj, parse_float=Decimal)
     else:
         dados = obj
     kwargs = {
@@ -52,6 +53,8 @@ def item_simples_unificado_de_json(obj: str | dict[str, Any]) -> ItemSimplesUnif
         "tp_bm",
     ):
         valor = kwargs[campo]
-        if valor is not None and not isinstance(valor, str):
+        if isinstance(valor, Decimal):
+            kwargs[campo] = format(valor, "f")
+        elif valor is not None and not isinstance(valor, str):
             kwargs[campo] = str(valor)
     return ItemSimplesUnificadoInput(**kwargs)

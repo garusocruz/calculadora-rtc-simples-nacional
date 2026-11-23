@@ -17,6 +17,11 @@ if [[ ! "${PYVER}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "A versão do pyproject.toml deve ser X.Y.Z. Veio: ${PYVER:-vazio}" >&2
   exit 1
 fi
+REPEAT="${CI_REPEAT_FILE:-/workspace/.ci/versao-repetida}"
+if [[ -f "${REPEAT}" ]]; then
+  echo "A versão ${PYVER} já está no PyPI. Não publica de novo." >&2
+  exit 1
+fi
 
 REPO="${_GITHUB_REPO:-${GITHUB_REPO:?}}"
 OWNER="${_GITHUB_OWNER:-${GITHUB_OWNER:-garusocruz}}"
