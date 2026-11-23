@@ -39,3 +39,4 @@ A `0.3.0` ficou na `main` (`cf49000`). Esta versão lista o que entrou depois.
 - Mostra `report-pr` e `pipeline-gate` no build da `main`, depois do publicar.
 - O comentário da pull request mergeada lista equivalência, quality gate e publicar.
 - O README aponta a `0.3.0` pública no PyPI e o CI do Cloud Build. Não há release no GitHub.
+- O push na `main` deixa de publicar. Só a release `vX.Y.Z` grava o run no README e publica no PyPI.
