@@ -48,10 +48,32 @@ if [[ "${http}" != "404" ]]; then
   exit 1
 fi
 
-python3 - "${TAG}" "${COMMIT_SHA}" "${BUILD_ID}" "${URL}" /tmp/gh-release-create.json <<'PY'
+python3 - "${TAG}" "${COMMIT_SHA}" "${BUILD_ID}" "${URL}" "${VER}" "${ROOT}/CHANGELOG.md" "${CI_STEPS_DIR:-/workspace/.ci/steps}/pr-comment.md" /tmp/gh-release-create.json <<'PY'
 import json, pathlib, sys
-tag, sha, build, url, dest = sys.argv[1:]
-body = f"Build: {build}\nCommit: {sha}\nURL: {url}\n"
+tag, sha, build, url, ver, notes_path, comment_path, dest = sys.argv[1:]
+notes = ""
+changelog = pathlib.Path(notes_path)
+if changelog.is_file():
+    lines = changelog.read_text(encoding="utf-8").splitlines()
+    start = None
+    for i, line in enumerate(lines):
+        if line.startswith(f"## {ver}"):
+            start = i
+            break
+    if start is not None:
+        end = len(lines)
+        for j in range(start + 1, len(lines)):
+            if lines[j].startswith("## "):
+                end = j
+                break
+        notes = "\n".join(lines[start:end]).strip()
+comment = ""
+comment_file = pathlib.Path(comment_path)
+if comment_file.is_file():
+    comment = comment_file.read_text(encoding="utf-8").strip()
+parts = [part for part in (notes, comment) if part]
+parts.append(f"Build: {build}\nCommit: {sha}\nURL: {url}")
+body = "\n\n".join(parts) + "\n"
 pathlib.Path(dest).write_text(
     json.dumps(
         {

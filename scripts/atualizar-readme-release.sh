@@ -44,7 +44,7 @@ import json, shlex, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 fields = {}
 for line in (data.get("body") or "").splitlines():
-    if ": " not in line:
+    if not line.startswith(("Build: ", "Commit: ", "URL: ")):
         continue
     key, value = line.split(": ", 1)
     fields[key] = value.strip()

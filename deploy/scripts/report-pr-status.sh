@@ -505,6 +505,8 @@ ${LOG_SECTION}
 _Posted by Lynko shared Cloud Build reporter (\`${COMMENT_SCOPE}\`)._
 EOF
 )
+mkdir -p "${STEPS_DIR}"
+printf '%s\n' "${BODY}" > "${STEPS_DIR}/pr-comment.md"
 
 API_BASE="https://api.github.com/repos/${OWNER}/${REPO}"
 AUTH_HDR=( -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" )
