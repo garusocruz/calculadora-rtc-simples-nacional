@@ -51,6 +51,17 @@ O cálculo do item recebe as alíquotas efetivas já resolvidas (`pIBSSN` e `pCB
 
 O resultado depende do insumo, do `calculadora-pro.db` daquele pin e da cobertura da suíte. Uso em documento fiscal exige conferência independente. A publicação do código pela Receita não homologa esta implementação.
 
+Só `arredondamento.py` quantiza, na política do pin. A comparação com o Java vale para os casos da suíte daquele commit, não para cenário que ela não executa.
+
+| O que | Nesta versão |
+| --- | --- |
+| Casos da suíte Java do pin | comparados; ver [Última validação](#ultima-validacao) |
+| Alíquota efetiva a partir da receita bruta | não; entra pronta em `pIBSSN` e `pCBSSN` |
+| Arredondamento | só `arredondamento.py`, conferido contra o pin |
+| API, nota, XML e HTTP | não |
+| DANFSe | não |
+| Parecer ou enquadramento tributário | não |
+
 O DANFSe também fica de fora. O PDF da NFS-e é o módulo Go `danfse-service`, em https://github.com/ReceitaFederal/calculadora-rtc-gerador-danfse, pin `8d79e6b2f7fad6375340afcb51c85ed370c64a14`.
 
 <a id="arquitetura"></a>
