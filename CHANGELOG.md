@@ -40,7 +40,7 @@ A `0.3.0` ficou na `main` (`cf49000`). Esta versão lista o que entrou depois.
 - O comentário da pull request mergeada lista equivalência, quality gate e publicar.
 - O README aponta a `0.3.0` pública no PyPI e o CI do Cloud Build. Não há release no GitHub.
 
-## 0.4.0
+## 0.3.2
 
 A `0.3.1` ficou na `main` (`f9c5aa3`) e no PyPI, publicada pelo trigger antigo da `main`, sem release no GitHub. Esta versão lista o que entrou depois.
 
