@@ -4,10 +4,10 @@ Cálculo de CBS e IBS do Simples Nacional, em Python. É uma releitura da calcul
 
 **Nossas** (esta releitura em Python, MIT, Copyright (c) 2026 Garuso Cruz)
 
-[![versão 0.3.1](https://img.shields.io/badge/vers%C3%A3o-0.3.1-blue)](https://github.com/garusocruz/calculadora-rtc-simples-nacional)
+[![PyPI 0.3.0](https://img.shields.io/pypi/v/calculadora-rtc-simples-nacional)](https://pypi.org/project/calculadora-rtc-simples-nacional/)
 [![nossa licença MIT](https://img.shields.io/badge/nossa%20licen%C3%A7a-MIT%20Garuso%20Cruz-green)](LICENSE)
 [![cobertura Python 94,94%](https://img.shields.io/badge/cobertura%20Python-94%2C94%25-brightgreen)](#ultima-validacao)
-[![Cloud Build: cloudbuild.yaml, sem trigger](https://img.shields.io/badge/Cloud%20Build-cloudbuild.yaml%2C%20sem%20trigger-lightgrey?logo=googlecloud&logoColor=white)](cloudbuild.yaml)
+[![Cloud Build CI](https://img.shields.io/badge/Cloud%20Build-CI-blue?logo=googlecloud&logoColor=white)](cloudbuild.yaml)
 
 **Do pin oficial** (calculadora Java do Simples, commit `a926d5a7`, e Flyway do regime regular, commit `f1eebd7`; as duas obras são MIT, Copyright (c) 2026 Receita Federal do Brasil)
 
@@ -36,7 +36,7 @@ As duas coberturas medem unidades diferentes: a nossa conta sentenças Python (m
 
 ## Fora do escopo
 
-A lib não sobe API, não emite nota, não assina XML e não chama a Sefin. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`. O PyPI recebe só a versão de produção, no merge da `main`.
+A lib não sobe API, não emite nota, não assina XML e não chama a Sefin. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`. O índice público do PyPI tem a `0.3.0`. O número deste repositório não vira release no GitHub.
 
 O banco é o `calculadora-pro.db` do regime regular, gerado pelo Flyway de https://github.com/ReceitaFederal/calculadora-rtc-regime-regular no pin `f1eebd7`. A política numérica é o mesmo `arredondamento.py` das duas libs, byte a byte.
 
@@ -84,7 +84,7 @@ A lib abre o SQLite em modo somente leitura. O caminho entra por `CALC_DB`. Sem 
 
 ## Equivalência
 
-O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. A pull request para `main` dispara `calculadora-rtc-simples-nacional-pr` e roda o mesmo script em `cloudbuild.yaml`. Esse build não publica. O merge dispara `calculadora-rtc-simples-nacional-main`, repete a equivalência em `cloudbuild-prod.yaml` e publica no PyPI a versão do `pyproject.toml`. Se essa versão já estiver no PyPI, o build não publica de novo. Não há workflow do GitHub Actions. Os triggers ainda não estão aplicados.
+O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request para `main` dispara `calculadora-rtc-simples-nacional-pr` e roda `cloudbuild.yaml`: equivalência, quality gate, comentário e pipeline-gate. Esse build não publica. O push na `main` dispara `calculadora-rtc-simples-nacional-main` e roda `cloudbuild-prod.yaml`: equivalência, quality gate, publicar, comentário e pipeline-gate. Publicar sobe para o PyPI o número que já está no `pyproject.toml`, se esse número ainda não estiver no índice. O trigger não cria tag, não abre release e não escolhe outro número.
 
 ```bash
 export PATH="${HOME}/.local/bin:${HOME}/.asdf/shims:${PATH}"
@@ -111,7 +111,7 @@ O pytest grava `junit_family = legacy` para o `classname` e o `name` saírem igu
 
 ## Última validação
 
-Data: 22 de novembro de 2026. Sem trigger do Cloud Build, a única verificação é o script local: o `scripts/hooks/pre-push.sh` completo, com saída salva em `.cache/pre-push.log`, terminou em `pre-push OK`.
+Data: 22 de novembro de 2026. Os números abaixo são do `scripts/hooks/pre-push.sh` local, que terminou em `pre-push OK`. O Cloud Build repete esses gates na pull request e na `main`.
 
 | Checagem | Saída |
 | --- | --- |
@@ -143,7 +143,7 @@ Quando sai um release, um alerta de segurança ou uma issue que muda regra:
 4. Cada nome que faltar é um serviço que o controller Java chama. Portar esse serviço. A fachada em `consumo.py` conserva a classe e o método Java. Por dentro, a função nova fica em snake_case.
 5. Se `arredondamento.py` mudar, a mesma alteração entra nas duas libs e o SHA-256 dos testes de cópia única é atualizado nos dois lados.
 6. Repetir o gancho até `pre-push OK`.
-7. Igualar a versão do `pyproject.toml` à versão de produção e abrir a pull request para `main`. O merge publica só esse pacote no PyPI.
+7. Gravar o número novo no `pyproject.toml` e abrir a pull request para `main`. O merge não cria release. O Cloud Build da `main` publica esse número no PyPI se ele ainda não estiver no índice.
 
 Não se recoloca esse cálculo em `backends/faturae`. Não se publica no Artifact Registry. Não se publica pacote de rc.
 
@@ -151,7 +151,13 @@ Não se recoloca esse cálculo em `backends/faturae`. Não se publica no Artifac
 
 ## Instalação
 
-Python 3.12 ou superior. Não há dependência de runtime além da biblioteca padrão.
+Python 3.12 ou superior. Não há dependência de runtime além da biblioteca padrão. O pacote público no PyPI é a `0.3.0`.
+
+```bash
+pip install calculadora-rtc-simples-nacional
+```
+
+Para desenvolver a partir do clone:
 
 ```bash
 cd libs/calculadora-rtc-simples-nacional
