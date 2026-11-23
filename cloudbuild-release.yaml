@@ -77,6 +77,7 @@ steps:
     env:
       - PROJECT_ID=$PROJECT_ID
       - BUILD_ID=$BUILD_ID
+      - COMMIT_SHA=$COMMIT_SHA
       - TAG_NAME=$TAG_NAME
       - _REGION=$_REGION
       - _GITHUB_OWNER=$_GITHUB_OWNER
@@ -139,10 +140,36 @@ steps:
         poetry config pypi-token.pypi "$$PYPI_API_TOKEN"
         poetry publish --build --no-interaction
 
+  - id: abrir-release
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["publicar"]
+    allowFailure: true
+    entrypoint: bash
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - COMMIT_SHA=$COMMIT_SHA
+      - TAG_NAME=$TAG_NAME
+      - _GITHUB_OWNER=$_GITHUB_OWNER
+      - _GITHUB_REPO=$_GITHUB_REPO
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        mkdir -p /workspace/.ci/steps
+        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/abrir-release.exit' EXIT
+        pub="$(tr -d '[:space:]' < /workspace/.ci/steps/publicar.exit || true)"
+        if [ "${pub}" != "0" ]; then
+          echo "A publicação não passou. Não abre release."
+          exit 1
+        fi
+        apt-get update -qq && apt-get install -y -qq git curl ca-certificates >/dev/null
+        chmod +x scripts/abrir-release.sh deploy/scripts/configure-github-git.sh
+        bash scripts/abrir-release.sh
+
   - id: report-pr
     allowFailure: true
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    waitFor: ["publicar"]
+    waitFor: ["abrir-release"]
     entrypoint: bash
     env:
       - PROJECT_ID=$PROJECT_ID

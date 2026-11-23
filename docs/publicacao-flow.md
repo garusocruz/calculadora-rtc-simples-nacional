@@ -1,6 +1,6 @@
 # Publicação da calculadora do Simples Nacional
 
-Escopo: `cloudbuild.yaml` na pull request, `cloudbuild-prod.yaml` no push da `main` e `cloudbuild-release.yaml` na release `vX.Y.Z`. Só a release publica no PyPI. Não sobe para o Artifact Registry.
+Escopo: `cloudbuild.yaml` na pull request e `cloudbuild-prod.yaml` no push da `main`. O push da `main`, com os gates verdes, grava esse build no README, publica no PyPI e abre a release `vX.Y.Z`. Não sobe para o Artifact Registry.
 
 ## Fluxograma
 
@@ -15,9 +15,10 @@ flowchart TD
   main[Push na main] --> equivMain[equivalencia]
   equivMain --> qgMain[quality-gates]
   qgMain --> comentarioMain[report-pr]
-  comentarioMain --> gateMain[pipeline-gate]
-  gateMain --> fimMain[Não publica]
-  rel[Release vX.Y.Z] --> equivRel[equivalencia]
+  comentarioMain --> readmeMain[grava este build no README]
+  readmeMain --> pypiMain[poetry publish]
+  pypiMain --> abre[abre a release vX.Y.Z]
+  rel[Tag vX.Y.Z] --> equivRel[equivalencia]
   equivRel --> qgRel[quality-gates]
   qgRel --> readme[grava o run no README]
   readme --> pypi[poetry publish]
@@ -42,9 +43,12 @@ sequenceDiagram
     CB-->>GH: não comenta e segue
   end
   CB->>CB: pipeline-gate
-  GH->>CB: push na main, cloudbuild-prod.yaml, _RUN_PUBLISH=0
-  CB->>CB: equivalencia, quality-gates, report-pr e pipeline-gate
-  GH->>CB: release vX.Y.Z, cloudbuild-release.yaml
+  GH->>CB: push na main, cloudbuild-prod.yaml
+  CB->>CB: equivalencia e quality-gates
+  CB->>GH: grava este build no README da main
+  CB->>Py: poetry publish se a versão ainda não está no índice
+  CB->>GH: abre a release vX.Y.Z no commit do build
+  GH->>CB: tag vX.Y.Z, cloudbuild-release.yaml
   CB->>CB: equivalencia e quality-gates
   CB->>GH: grava o run no README da main
   CB->>CL: exige a seção da versão
@@ -57,8 +61,8 @@ sequenceDiagram
 flowchart TD
   evento{Evento}
   evento -->|pull request| semPacote[Equivalência, quality gate e comentário]
-  evento -->|push na main| ci[CI, sem publicar]
-  evento -->|release vX.Y.Z| producao[Grava o run no README e publica no PyPI]
+  evento -->|push na main com gates verdes| producao[Grava este build no README, publica e abre a release]
+  evento -->|tag vX.Y.Z| producao
   producao --> registry[Não usa Artifact Registry]
 ```
 

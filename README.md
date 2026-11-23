@@ -84,13 +84,13 @@ A lib abre o SQLite em modo somente leitura. O caminho entra por `CALC_DB`. Sem 
 
 ## Equivalência
 
-O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request dispara `calculadora-rtc-simples-nacional-pr`. O push na `main` dispara `calculadora-rtc-simples-nacional-main`. Os dois rodam equivalência, quality gate, comentário e pipeline-gate. Nenhum dos dois publica.
+O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request dispara `calculadora-rtc-simples-nacional-pr` e não publica. O push na `main` dispara `calculadora-rtc-simples-nacional-main`. Com os gates verdes, esse build grava o próprio run no README, publica a versão do `pyproject.toml` no PyPI e abre a release `vX.Y.Z` nesse commit.
 
 <!-- release-runs:start -->
 Ainda não há release `vX.Y.Z` neste fluxo. O índice público do PyPI tem a `0.3.1`, publicada antes, sem release no GitHub.
 <!-- release-runs:end -->
 
-A release no GitHub, com tag `vX.Y.Z` igual ao `pyproject.toml`, dispara `calculadora-rtc-simples-nacional-release`. Esse build grava o run no bloco acima e só então publica no PyPI. Sem essa release, não há versão nova no índice nem no repositório.
+A tag `vX.Y.Z` que essa release abre dispara `calculadora-rtc-simples-nacional-release`. Se o README já registra a release, esse build não troca o run. Sem a release, não há versão nova no índice.
 
 ```bash
 export PATH="${HOME}/.local/bin:${HOME}/.asdf/shims:${PATH}"
@@ -149,7 +149,7 @@ Quando sai um release, um alerta de segurança ou uma issue que muda regra:
 4. Cada nome que faltar é um serviço que o controller Java chama. Portar esse serviço. A fachada em `consumo.py` conserva a classe e o método Java. Por dentro, a função nova fica em snake_case.
 5. Se `arredondamento.py` mudar, a mesma alteração entra nas duas libs e o SHA-256 dos testes de cópia única é atualizado nos dois lados.
 6. Repetir o gancho até `pre-push OK`.
-7. Gravar o número novo no `pyproject.toml`, abrir a pull request para `main` e, depois do merge, publicar a release `vX.Y.Z` no GitHub. Só essa release publica no PyPI e regrava o run no README.
+7. Gravar o número novo no `pyproject.toml` e abrir a pull request para `main`. O merge, com os gates verdes, grava esse build no README, publica no PyPI e abre a release `vX.Y.Z`.
 
 Não se recoloca esse cálculo em `backends/faturae`. Não se publica no Artifact Registry. Não se publica pacote de rc.
 

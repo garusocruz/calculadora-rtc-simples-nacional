@@ -63,6 +63,7 @@ run_selftests() {
     cloudbuild-prod.yaml
     cloudbuild-release.yaml
     scripts/atualizar-readme-release.sh
+    scripts/abrir-release.sh
     trivy.yaml
     .trivyignore.yaml
     trivy-secret.yaml
