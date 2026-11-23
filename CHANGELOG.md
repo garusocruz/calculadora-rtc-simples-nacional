@@ -54,3 +54,10 @@ A `0.3.2` ficou na `main`. Esta versão cancela o Cloud Build anterior.
 - O primeiro passo da pull request e da `main` é `cancel-superseded-builds`.
 - Na `main`, esse passo vê o ambiente `main`. O rótulo `production` faria o script das libs pular.
 - A tag `vX.Y.Z` continua com `production` e não cancela outro build.
+
+## 0.4.1
+
+A `0.4.0` ficou na `main` e no PyPI. Esta versão gera o JaCoCo que o README da release exige.
+
+- Depois do `mvn test`, a suíte roda `jacoco:report`.
+- Sem o relatório de linhas, a equivalência falha antes de gravar o README.
