@@ -10,6 +10,7 @@ from calculadora_rtc_simples_nacional import (
     PIN_OFICIAL_VERSAO,
 )
 from calculadora_rtc_simples_nacional.json_input import item_simples_unificado_de_json
+from calculadora_rtc_simples_nacional.versao import VersaoDomain
 
 
 def test_pin_oficial_e_o_calculador_1_0_2() -> None:
@@ -24,3 +25,9 @@ def test_json_preserva_decimal_que_o_float_perde() -> None:
     item = item_simples_unificado_de_json('{"baseCalculo": 1234567890123456789.25}')
     assert item.base_calculo == "1234567890123456789.25"
     assert Decimal(item.base_calculo) == Decimal("1234567890123456789.25")
+
+
+def test_versao_remota_nao_guarda_float() -> None:
+    versao = VersaoDomain.from_json({"versaoDb": Decimal("1.25")})
+    assert versao.versao_db == "1.25"
+    assert not isinstance(versao.versao_db, float)
