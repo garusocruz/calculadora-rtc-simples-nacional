@@ -87,7 +87,7 @@ A lib abre o SQLite em modo somente leitura. O caminho entra por `CALC_DB`. Sem 
 O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request dispara `calculadora-rtc-simples-nacional-pr` e não publica. O push na `main` dispara `calculadora-rtc-simples-nacional-main` e faz o build da lib. Se essa versão ainda não tem release, o build abre `vX.Y.Z` com o próprio run. A publicação no PyPI e a gravação desse run no README acontecem quando a release é publicada, sem refazer o build.
 
 <!-- release-runs:start -->
-Ainda não há release `vX.Y.Z` neste fluxo. O índice público do PyPI tem a `0.3.1`, publicada antes, sem release no GitHub.
+Release `v0.4.0` em 2026-11-23. Build [`6c0675df-e8cd-4b7a-b35b-500917e0b8ff`](https://console.cloud.google.com/cloud-build/builds;region=us-central1/6c0675df-e8cd-4b7a-b35b-500917e0b8ff?project=lynko-508200) no commit `f113e71c5117e44c01af57fd56212ae65d78d1d8`.
 <!-- release-runs:end -->
 
 A release `vX.Y.Z` dispara `calculadora-rtc-simples-nacional-release`. Esse passo usa o build da `main`, grava o run no bloco acima e publica a versão no PyPI se ela ainda não estiver no índice.
