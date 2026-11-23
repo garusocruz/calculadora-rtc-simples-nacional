@@ -1,5 +1,6 @@
-# Release GitHub vX.Y.Z. Grava o run no README e publica no PyPI.
-# O push na main não publica.
+# Release vX.Y.Z. Não refaz o build da lib.
+# Grava no README o build da main e publica essa versão no PyPI.
+# O ambiente production faz o script de cancelamento sair sem cancelar a tag.
 substitutions:
   _LIB_NAME: calculadora_rtc_simples_nacional
   _ENVIRONMENT: production
@@ -21,72 +22,43 @@ options:
   machineType: E2_MEDIUM
 
 steps:
-  - id: equivalencia
-    name: eclipse-temurin:25-jdk
-    waitFor: ["-"]
-    allowFailure: true
+  - id: cancel-superseded-builds
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        export DEBIAN_FRONTEND=noninteractive
-        apt-get update -qq
-        apt-get install -y -qq python3 python3-pip python3-venv git ca-certificates curl
-        python3 -m venv /opt/venv
-        /opt/venv/bin/pip install pytest pytest-cov
-        export PATH="/opt/venv/bin:$$PATH"
-        mkdir -p /workspace/.ci/steps
-        set +e
-        bash scripts/equivalencia.sh
-        code=$$?
-        set -e
-        echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/equivalencia.exit
-        exit "$${code}"
-
-  - id: quality-gates
-    name: eclipse-temurin:25-jdk
-    waitFor: ["equivalencia"]
     allowFailure: true
-    entrypoint: bash
     env:
-      - COVERAGE_FAIL_UNDER=80
-      - PYTEST_VENV=/workspace/.ci/pytest-venv
+      - PROJECT_ID=$PROJECT_ID
+      - BUILD_ID=$BUILD_ID
+      - LOCATION=$LOCATION
+      - TRIGGER_NAME=$TRIGGER_NAME
+      - REF_NAME=$REF_NAME
+      - _REGION=$_REGION
+      - _ENVIRONMENT=$_ENVIRONMENT
     args:
       - -c
       - |
         set -euo pipefail
-        export DEBIAN_FRONTEND=noninteractive
-        apt-get update -qq
-        apt-get install -y -qq python3 python3-pip python3-venv git ca-certificates curl
-        mkdir -p /workspace/.ci/steps /workspace/.ci/trivy-cache
-        chmod +x scripts/ci-quality-gates.sh scripts/run-trivy-fs.sh scripts/hooks/*.sh
-        export TRIVY_CACHE_DIR=/workspace/.ci/trivy-cache
-        set +e
-        bash scripts/ci-quality-gates.sh cb
-        code=$$?
-        set -e
-        echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/quality-gates.exit
-        exit "$${code}"
+        chmod +x /workspace/cloudbuild/cancel-superseded-builds.sh
+        bash /workspace/cloudbuild/cancel-superseded-builds.sh
+    waitFor: ["-"]
 
   - id: atualizar-readme
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    waitFor: ["quality-gates"]
+    waitFor: ["cancel-superseded-builds"]
     allowFailure: true
     entrypoint: bash
     env:
       - PROJECT_ID=$PROJECT_ID
-      - BUILD_ID=$BUILD_ID
       - TAG_NAME=$TAG_NAME
-      - _REGION=$_REGION
       - _GITHUB_OWNER=$_GITHUB_OWNER
       - _GITHUB_REPO=$_GITHUB_REPO
     args:
       - -c
       - |
         set -euo pipefail
-        apt-get update -qq && apt-get install -y -qq python3 git >/dev/null
+        apt-get update -qq && apt-get install -y -qq python3 git curl ca-certificates >/dev/null
         mkdir -p /workspace/.ci/steps
+        chmod +x scripts/atualizar-readme-release.sh deploy/scripts/configure-github-git.sh
         set +e
         bash scripts/atualizar-readme-release.sh
         code=$$?

@@ -1,5 +1,6 @@
-# Push na main. Equivalência, quality gates e comentário. Não publica.
-# A release vX.Y.Z usa cloudbuild-release.yaml e publica no PyPI.
+# Push na main. Equivalência e quality gates. Não publica no PyPI.
+# Se a versão ainda não tem release, abre vX.Y.Z com este build. O trigger da release publica.
+# O cancelamento desta branch recebe o ambiente main. production faria o script pular.
 substitutions:
   _LIB_NAME: calculadora_rtc_simples_nacional
   _ENVIRONMENT: production
@@ -17,9 +18,29 @@ options:
   machineType: E2_MEDIUM
 
 steps:
+  - id: cancel-superseded-builds
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    allowFailure: true
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - BUILD_ID=$BUILD_ID
+      - LOCATION=$LOCATION
+      - TRIGGER_NAME=$TRIGGER_NAME
+      - REF_NAME=$REF_NAME
+      - _REGION=$_REGION
+      - _ENVIRONMENT=main
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        chmod +x /workspace/cloudbuild/cancel-superseded-builds.sh
+        bash /workspace/cloudbuild/cancel-superseded-builds.sh
+    waitFor: ["-"]
+
   - id: equivalencia
     name: eclipse-temurin:25-jdk
-    waitFor: ["-"]
+    waitFor: ["cancel-superseded-builds"]
     allowFailure: true
     entrypoint: bash
     args:
@@ -33,6 +54,13 @@ steps:
         /opt/venv/bin/pip install pytest pytest-cov
         export PATH="/opt/venv/bin:$$PATH"
         mkdir -p /workspace/.ci/steps
+        subject="$(git log -1 --format=%s)"
+        if [[ "$${subject}" == "docs: registra o run da release "* ]]; then
+          echo "Commit de registro. O build da lib já rodou no merge."
+          echo skip > /workspace/.ci/skip-build
+          echo 0 | tee /workspace/.ci/exit_code > /workspace/.ci/steps/equivalencia.exit
+          exit 0
+        fi
         set +e
         bash scripts/equivalencia.sh
         code=$$?
@@ -56,6 +84,11 @@ steps:
         apt-get update -qq
         apt-get install -y -qq python3 python3-pip python3-venv git ca-certificates curl
         mkdir -p /workspace/.ci/steps /workspace/.ci/trivy-cache
+        if [ -f /workspace/.ci/skip-build ]; then
+          echo "Commit de registro. Não repete o build."
+          echo 0 | tee /workspace/.ci/exit_code > /workspace/.ci/steps/quality-gates.exit
+          exit 0
+        fi
         chmod +x scripts/ci-quality-gates.sh scripts/run-trivy-fs.sh scripts/hooks/*.sh
         export TRIVY_CACHE_DIR=/workspace/.ci/trivy-cache
         set +e
@@ -88,9 +121,42 @@ steps:
         chmod +x deploy/scripts/report-pr-status.sh
         bash deploy/scripts/report-pr-status.sh
 
+  - id: abrir-release
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["quality-gates"]
+    allowFailure: true
+    entrypoint: bash
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - BUILD_ID=$BUILD_ID
+      - COMMIT_SHA=$COMMIT_SHA
+      - TAG_NAME=$TAG_NAME
+      - _REGION=$_REGION
+      - _GITHUB_OWNER=$_GITHUB_OWNER
+      - _GITHUB_REPO=$_GITHUB_REPO
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        mkdir -p /workspace/.ci/steps
+        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/abrir-release.exit' EXIT
+        if [ -f /workspace/.ci/skip-build ]; then
+          echo "Commit de registro. Não abre outra release."
+          exit 0
+        fi
+        eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
+        qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
+        if [ "${eq}" != "0" ] || [ "${qg}" != "0" ]; then
+          echo "O build não ficou verde. Não abre release."
+          exit 1
+        fi
+        apt-get update -qq && apt-get install -y -qq python3 git curl ca-certificates >/dev/null
+        chmod +x scripts/abrir-release.sh deploy/scripts/configure-github-git.sh
+        bash scripts/abrir-release.sh
+
   - id: pipeline-gate
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    waitFor: ["report-pr"]
+    waitFor: ["report-pr", "abrir-release"]
     entrypoint: bash
     args:
       - -c
