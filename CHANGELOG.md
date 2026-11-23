@@ -46,3 +46,11 @@ A `0.3.1` ficou na `main` (`f9c5aa3`) e no PyPI, publicada pelo trigger antigo d
 
 - O merge na `main` faz o build da lib. A release `vX.Y.Z` publica no PyPI com esse build e grava o run no README.
 - O `install.sh` registra pre-commit, pre-push e commit-msg.
+
+## 0.4.0
+
+A `0.3.2` ficou na `main`. Esta versão cancela o Cloud Build anterior.
+
+- O primeiro passo da pull request e da `main` é `cancel-superseded-builds`.
+- Na `main`, esse passo vê o ambiente `main`. O rótulo `production` faria o script das libs pular.
+- A tag `vX.Y.Z` continua com `production` e não cancela outro build.

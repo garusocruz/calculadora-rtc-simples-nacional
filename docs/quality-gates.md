@@ -11,7 +11,7 @@ This lib does not apply Terraform and does not publish to Artifact Registry. Tri
 | `calculadora-rtc-simples-nacional-pr` | `cloudbuild.yaml` | pull request to `main` |
 | `calculadora-rtc-simples-nacional-main` | `cloudbuild-prod.yaml` | push to `main` |
 
-Na pull request: `equivalencia` → `quality-gates` → `report-pr` → `pipeline-gate`. Na main: o mesmo build e, se a versão é nova, `abrir-release`. Na release: `atualizar-readme` → `publicar`, sem refazer o build.
+Na pull request: `cancel-superseded-builds` → `equivalencia` → `quality-gates` → `report-pr` → `pipeline-gate`. Na main: o mesmo cancelamento da branch, o build e, se a versão é nova, `abrir-release`. Na release o passo existe e sai sem cancelar, porque o ambiente é `production`. Depois, `atualizar-readme` → `publicar`, sem refazer o build.
 
 ## Gates
 

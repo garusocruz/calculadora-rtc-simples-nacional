@@ -1,5 +1,6 @@
 # Push na main. Equivalência e quality gates. Não publica no PyPI.
 # Se a versão ainda não tem release, abre vX.Y.Z com este build. O trigger da release publica.
+# O cancelamento desta branch recebe o ambiente main. production faria o script pular.
 substitutions:
   _LIB_NAME: calculadora_rtc_simples_nacional
   _ENVIRONMENT: production
@@ -17,9 +18,29 @@ options:
   machineType: E2_MEDIUM
 
 steps:
+  - id: cancel-superseded-builds
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    allowFailure: true
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - BUILD_ID=$BUILD_ID
+      - LOCATION=$LOCATION
+      - TRIGGER_NAME=$TRIGGER_NAME
+      - REF_NAME=$REF_NAME
+      - _REGION=$_REGION
+      - _ENVIRONMENT=main
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        chmod +x /workspace/cloudbuild/cancel-superseded-builds.sh
+        bash /workspace/cloudbuild/cancel-superseded-builds.sh
+    waitFor: ["-"]
+
   - id: equivalencia
     name: eclipse-temurin:25-jdk
-    waitFor: ["-"]
+    waitFor: ["cancel-superseded-builds"]
     allowFailure: true
     entrypoint: bash
     args:
