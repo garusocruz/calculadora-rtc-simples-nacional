@@ -18,6 +18,9 @@ flowchart TD
   publicar --> jaTem{Versão já está no PyPI?}
   jaTem -->|sim| para[Para sem outro upload]
   jaTem -->|não| pypi[poetry publish]
+  para --> comentarioMain[report-pr]
+  pypi --> comentarioMain
+  comentarioMain --> gateMain[pipeline-gate]
 ```
 
 ## Sequência
@@ -47,6 +50,10 @@ sequenceDiagram
   else versão ausente no índice
     CB->>Py: poetry publish
   end
+  CB->>CB: report-pr instala python3
+  CB->>SM: lê lynko-github-ci-token
+  CB->>GH: comenta a pull request mergeada
+  CB->>CB: pipeline-gate
 ```
 
 ## Decisão
