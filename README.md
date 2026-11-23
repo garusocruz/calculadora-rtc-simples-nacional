@@ -4,7 +4,7 @@ Cálculo de CBS e IBS do Simples Nacional, em Python. É uma releitura da calcul
 
 **Nossas** (esta releitura em Python, MIT, Copyright (c) 2026 Garuso Cruz)
 
-[![PyPI 0.3.0](https://img.shields.io/pypi/v/calculadora-rtc-simples-nacional)](https://pypi.org/project/calculadora-rtc-simples-nacional/)
+[![PyPI 0.3.1](https://img.shields.io/pypi/v/calculadora-rtc-simples-nacional)](https://pypi.org/project/calculadora-rtc-simples-nacional/)
 [![nossa licença MIT](https://img.shields.io/badge/nossa%20licen%C3%A7a-MIT%20Garuso%20Cruz-green)](LICENSE)
 [![cobertura Python 94,94%](https://img.shields.io/badge/cobertura%20Python-94%2C94%25-brightgreen)](#ultima-validacao)
 [![Cloud Build CI](https://img.shields.io/badge/Cloud%20Build-CI-blue?logo=googlecloud&logoColor=white)](cloudbuild.yaml)
@@ -36,7 +36,7 @@ As duas coberturas medem unidades diferentes: a nossa conta sentenças Python (m
 
 ## Fora do escopo
 
-A lib não sobe API, não emite nota, não assina XML e não chama a Sefin. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`. O índice público do PyPI tem a `0.3.0`. O número deste repositório não vira release no GitHub.
+A lib não sobe API, não emite nota, não assina XML e não chama a Sefin. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`. O índice público do PyPI tem a `0.3.1`. O número deste repositório não vira release no GitHub.
 
 O banco é o `calculadora-pro.db` do regime regular, gerado pelo Flyway de https://github.com/ReceitaFederal/calculadora-rtc-regime-regular no pin `f1eebd7`. A política numérica é o mesmo `arredondamento.py` das duas libs, byte a byte.
 
@@ -84,7 +84,13 @@ A lib abre o SQLite em modo somente leitura. O caminho entra por `CALC_DB`. Sem 
 
 ## Equivalência
 
-O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request para `main` dispara `calculadora-rtc-simples-nacional-pr` e roda `cloudbuild.yaml`: equivalência, quality gate, comentário e pipeline-gate. Esse build não publica. O push na `main` dispara `calculadora-rtc-simples-nacional-main` e roda `cloudbuild-prod.yaml`: equivalência, quality gate, publicar, comentário e pipeline-gate. Publicar sobe para o PyPI o número que já está no `pyproject.toml`, se esse número ainda não estiver no índice. O trigger não cria tag, não abre release e não escolhe outro número.
+O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request dispara `calculadora-rtc-simples-nacional-pr`. O push na `main` dispara `calculadora-rtc-simples-nacional-main`. Os dois rodam equivalência, quality gate, comentário e pipeline-gate. Nenhum dos dois publica.
+
+<!-- release-runs:start -->
+Ainda não há release `vX.Y.Z` neste fluxo. O índice público do PyPI tem a `0.3.1`, publicada antes, sem release no GitHub.
+<!-- release-runs:end -->
+
+A release no GitHub, com tag `vX.Y.Z` igual ao `pyproject.toml`, dispara `calculadora-rtc-simples-nacional-release`. Esse build grava o run no bloco acima e só então publica no PyPI. Sem essa release, não há versão nova no índice nem no repositório.
 
 ```bash
 export PATH="${HOME}/.local/bin:${HOME}/.asdf/shims:${PATH}"
@@ -143,7 +149,7 @@ Quando sai um release, um alerta de segurança ou uma issue que muda regra:
 4. Cada nome que faltar é um serviço que o controller Java chama. Portar esse serviço. A fachada em `consumo.py` conserva a classe e o método Java. Por dentro, a função nova fica em snake_case.
 5. Se `arredondamento.py` mudar, a mesma alteração entra nas duas libs e o SHA-256 dos testes de cópia única é atualizado nos dois lados.
 6. Repetir o gancho até `pre-push OK`.
-7. Gravar o número novo no `pyproject.toml` e abrir a pull request para `main`. O merge não cria release. O Cloud Build da `main` publica esse número no PyPI se ele ainda não estiver no índice.
+7. Gravar o número novo no `pyproject.toml`, abrir a pull request para `main` e, depois do merge, publicar a release `vX.Y.Z` no GitHub. Só essa release publica no PyPI e regrava o run no README.
 
 Não se recoloca esse cálculo em `backends/faturae`. Não se publica no Artifact Registry. Não se publica pacote de rc.
 
@@ -151,7 +157,7 @@ Não se recoloca esse cálculo em `backends/faturae`. Não se publica no Artifac
 
 ## Instalação
 
-Python 3.12 ou superior. Não há dependência de runtime além da biblioteca padrão. O pacote público no PyPI é a `0.3.0`.
+Python 3.12 ou superior. Não há dependência de runtime além da biblioteca padrão. O pacote público no PyPI é a `0.3.1`.
 
 ```bash
 pip install calculadora-rtc-simples-nacional
@@ -164,7 +170,7 @@ cd libs/calculadora-rtc-simples-nacional
 ./install.sh
 ```
 
-O script cria o `.venv` na raiz (`cenv` se existir, senão `python3 -m venv`), ativa esse ambiente e roda `poetry install --with dev`. Em outro shell: `source .venv/bin/activate`.
+O script cria o `.venv` na raiz (`cenv` se existir, senão `python3 -m venv`), ativa esse ambiente, roda `poetry install --with dev` e, no clone git, registra pre-commit, pre-push e commit-msg. Em outro shell: `source .venv/bin/activate`.
 
 O `calculadora-pro.db` é gerado pelo gancho, com o Flyway do regime regular, em `.cache/oficial/java/calculadora/db/calculadora-pro.db`.
 

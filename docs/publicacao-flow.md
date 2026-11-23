@@ -1,6 +1,6 @@
 # Publicação da calculadora do Simples Nacional
 
-Escopo: `cloudbuild.yaml` na pull request e `cloudbuild-prod.yaml` no push da `main`. A lib é pública. A única versão publicada é a do `pyproject.toml`, no PyPI. Não sobe para o Artifact Registry.
+Escopo: `cloudbuild.yaml` na pull request, `cloudbuild-prod.yaml` no push da `main` e `cloudbuild-release.yaml` na release `vX.Y.Z`. Só a release publica no PyPI. Não sobe para o Artifact Registry.
 
 ## Fluxograma
 
@@ -14,13 +14,13 @@ flowchart TD
   gate --> fimPr[Não publica]
   main[Push na main] --> equivMain[equivalencia]
   equivMain --> qgMain[quality-gates]
-  qgMain --> publicar[publicar]
-  publicar --> jaTem{Versão já está no PyPI?}
-  jaTem -->|sim| para[Para sem outro upload]
-  jaTem -->|não| pypi[poetry publish]
-  para --> comentarioMain[report-pr]
-  pypi --> comentarioMain
+  qgMain --> comentarioMain[report-pr]
   comentarioMain --> gateMain[pipeline-gate]
+  gateMain --> fimMain[Não publica]
+  rel[Release vX.Y.Z] --> equivRel[equivalencia]
+  equivRel --> qgRel[quality-gates]
+  qgRel --> readme[grava o run no README]
+  readme --> pypi[poetry publish]
 ```
 
 ## Sequência
@@ -42,18 +42,13 @@ sequenceDiagram
     CB-->>GH: não comenta e segue
   end
   CB->>CB: pipeline-gate
-  GH->>CB: push na main, cloudbuild-prod.yaml, _RUN_PUBLISH=1
+  GH->>CB: push na main, cloudbuild-prod.yaml, _RUN_PUBLISH=0
+  CB->>CB: equivalencia, quality-gates, report-pr e pipeline-gate
+  GH->>CB: release vX.Y.Z, cloudbuild-release.yaml
   CB->>CB: equivalencia e quality-gates
-  CB->>CL: exige a seção da versão do pyproject.toml
-  alt versão já publicada
-    CB-->>GH: não gera outra
-  else versão ausente no índice
-    CB->>Py: poetry publish
-  end
-  CB->>CB: report-pr instala python3
-  CB->>SM: lê lynko-github-ci-token
-  CB->>GH: comenta a pull request mergeada
-  CB->>CB: pipeline-gate
+  CB->>GH: grava o run no README da main
+  CB->>CL: exige a seção da versão
+  CB->>Py: poetry publish se a versão ainda não está no índice
 ```
 
 ## Decisão
@@ -62,7 +57,8 @@ sequenceDiagram
 flowchart TD
   evento{Evento}
   evento -->|pull request| semPacote[Equivalência, quality gate e comentário]
-  evento -->|push na main| producao[Publica a versão do pyproject no PyPI]
+  evento -->|push na main| ci[CI, sem publicar]
+  evento -->|release vX.Y.Z| producao[Grava o run no README e publica no PyPI]
   producao --> registry[Não usa Artifact Registry]
 ```
 
