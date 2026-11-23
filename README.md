@@ -84,13 +84,13 @@ A lib abre o SQLite em modo somente leitura. O caminho entra por `CALC_DB`. Sem 
 
 ## Equivalência
 
-O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request dispara `calculadora-rtc-simples-nacional-pr` e não publica. O push na `main` dispara `calculadora-rtc-simples-nacional-main` e faz o build da lib. Se essa versão ainda não tem release, o build abre `vX.Y.Z` com o próprio run. A publicação no PyPI e a gravação desse run no README acontecem quando a release é publicada, sem refazer o build.
+O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request dispara `calculadora-rtc-simples-nacional-pr` e não publica. O push na `main` dispara `calculadora-rtc-simples-nacional-main`. Depois do quality gate, o mesmo run faz o build da lib, grava o README com esse build e com esse run, publica no PyPI, abre a tag `vX.Y.Z` e abre a pull request que devolve o README para a `main`. O merge dessa pull request vê a versão já publicada e não repete o build.
 
 <!-- release-runs:start -->
 Release `v0.4.0` em 2026-11-23. Build [`6c0675df-e8cd-4b7a-b35b-500917e0b8ff`](https://console.cloud.google.com/cloud-build/builds;region=us-central1/6c0675df-e8cd-4b7a-b35b-500917e0b8ff?project=lynko-508200) no commit `f113e71c5117e44c01af57fd56212ae65d78d1d8`.
 <!-- release-runs:end -->
 
-A release `vX.Y.Z` dispara `calculadora-rtc-simples-nacional-release`. Esse passo usa o build da `main`, grava o run no bloco acima e publica a versão no PyPI se ela ainda não estiver no índice.
+A tag `vX.Y.Z` dispara `calculadora-rtc-simples-nacional-release`. Esse passo não publica de novo: confere o README e que o PyPI já tem a versão gravada no bloco acima.
 
 ```bash
 export PATH="${HOME}/.local/bin:${HOME}/.asdf/shims:${PATH}"
@@ -149,7 +149,7 @@ Quando sai um release, um alerta de segurança ou uma issue que muda regra:
 4. Cada nome que faltar é um serviço que o controller Java chama. Portar esse serviço. A fachada em `consumo.py` conserva a classe e o método Java. Por dentro, a função nova fica em snake_case.
 5. Se `arredondamento.py` mudar, a mesma alteração entra nas duas libs e o SHA-256 dos testes de cópia única é atualizado nos dois lados.
 6. Repetir o gancho até `pre-push OK`.
-7. Gravar o número novo no `pyproject.toml` e abrir a pull request para `main`. O merge faz o build. Se a versão é nova, abre a release `vX.Y.Z` e o trigger dela publica no PyPI com esse build.
+7. Gravar o número novo no `pyproject.toml` e abrir a pull request para `main`. O merge, no mesmo run, faz o build, grava o README, publica no PyPI, abre a tag e abre a pull request que devolve o README para a `main`.
 
 Não se recoloca esse cálculo em `backends/faturae`. Não se publica no Artifact Registry. Não se publica pacote de rc.
 

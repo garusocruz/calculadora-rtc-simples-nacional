@@ -2,7 +2,7 @@
 
 Org baseline: the same local hooks and Cloud Build gates as `libs/fast_flow`.
 
-This lib does not apply Terraform and does not publish to Artifact Registry. Triggers live in `lynko-terraform`. The pull request runs the gates and the equivalence suite. The push to `main` builds the lib. When the version has no release yet, that build opens GitHub release `vX.Y.Z`. The release trigger publishes that same build to PyPI and records it in the README.
+This lib does not apply Terraform and does not publish to Artifact Registry. Triggers live in `lynko-terraform`. The pull request runs the gates and the equivalence suite. The push to `main` runs the same gates and, in that same run, builds the lib, writes the README from that build and that run, publishes to PyPI, opens tag `vX.Y.Z`, and opens the README pull request back to `main`. A later push whose tree is already that tag does nothing else. If the version is on PyPI and the tree changed, the suite runs and no second tag is opened. The tag trigger only checks.
 
 ## Cloud Build
 
@@ -10,8 +10,9 @@ This lib does not apply Terraform and does not publish to Artifact Registry. Tri
 | --- | --- | --- |
 | `calculadora-rtc-simples-nacional-pr` | `cloudbuild.yaml` | pull request to `main` |
 | `calculadora-rtc-simples-nacional-main` | `cloudbuild-prod.yaml` | push to `main` |
+| `calculadora-rtc-simples-nacional-release` | `cloudbuild-release.yaml` | tag `vX.Y.Z` |
 
-Na pull request: `cancel-superseded-builds` → `equivalencia` → `quality-gates` → `report-pr` → `pipeline-gate`. Na main: o mesmo cancelamento da branch, o build e, se a versão é nova, `abrir-release`. Na release o passo existe e sai sem cancelar, porque o ambiente é `production`. Depois, `atualizar-readme` → `publicar`, sem refazer o build.
+Na pull request: `cancel-superseded-builds` → `equivalencia` → `quality-gates` → `report-pr` → `pipeline-gate`. Na main, depois do quality gate: `build-lib` → `atualizar-readme` → `publicar` → `abrir-pr` → `report-pr` → `pipeline-gate`. O push cuja árvore já é a da tag publicada pula a suíte. Se a versão já está no PyPI e a árvore mudou, a suíte roda e não abre outra tag. Na tag, o cancelamento sai sem cancelar e o passo `publicar` só confere o README e o PyPI.
 
 ## Gates
 

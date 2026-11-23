@@ -93,7 +93,8 @@ export CALC_DB="${DB}"
 cd "${ROOT}"
 python3 -m pytest -q --junitxml="${RELATORIO}/python.xml"
 
-python3 - "${JAVA_DIR}/target/surefire-reports" "${RELATORIO}/python.xml" <<'PY'
+mkdir -p "${ROOT}/.ci/steps"
+python3 - "${JAVA_DIR}/target/surefire-reports" "${RELATORIO}/python.xml" "${JAVA_DIR}/target/site/jacoco/jacoco.xml" "${ROOT}/.ci/steps/equivalencia-resumo.json" <<'PY'
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -172,6 +173,39 @@ for ident, (tipo, estado_java) in sorted(java.items()):
 
 unit = sum(1 for tipo, _ in java.values() if tipo == "unitario")
 e2e = sum(1 for tipo, _ in java.values() if tipo == "e2e")
+if len(sys.argv) > 4 and not faltam and not divergem:
+    import json
+    raiz = ET.parse(python_xml).getroot()
+    suites = [raiz] if raiz.tag == "testsuite" else list(raiz.findall("testsuite"))
+    testes = ignorados = falhas = erros = 0
+    tempo = 0.0
+    for suite in suites:
+        testes += int(suite.get("tests") or 0)
+        ignorados += int(suite.get("skipped") or 0)
+        falhas += int(suite.get("failures") or 0)
+        erros += int(suite.get("errors") or 0)
+        tempo += float(suite.get("time") or 0)
+    java_linhas = java_cobertas = None
+    jacoco = Path(sys.argv[3])
+    if jacoco.is_file():
+        relatorio = ET.parse(jacoco).getroot()
+        for contador in relatorio.findall("counter"):
+            if contador.get("type") == "LINE":
+                java_cobertas = int(contador.get("covered") or 0)
+                java_linhas = java_cobertas + int(contador.get("missed") or 0)
+                break
+    Path(sys.argv[4]).write_text(json.dumps({
+        "pytest_passaram": testes - ignorados - falhas - erros,
+        "pytest_ignorados": ignorados,
+        "pytest_segundos": round(tempo, 2),
+        "java_unitarios": unit,
+        "java_e2e": e2e,
+        "python_chaves": len(python),
+        "sem_par": len(faltam),
+        "diferente": len(divergem),
+        "java_linhas": java_linhas,
+        "java_cobertas": java_cobertas,
+    }), encoding="utf-8")
 print(f"Java unitários: {unit}")
 print(f"Java e2e: {e2e}")
 print(f"Python: {len({nome for nome in python})} casos no relatório")

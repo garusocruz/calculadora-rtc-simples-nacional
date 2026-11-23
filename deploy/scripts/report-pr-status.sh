@@ -21,6 +21,7 @@
 #   quality-gates.log         — full gate log (visible on fail)
 #   trivy-report.md           — Trivy counts + HIGH/CRITICAL findings for the PR comment
 #   publish.md                — published package version + Poetry install snippet
+#   publicacao.md             — tag, PyPI and the run that built this version
 #   publish.version / publish.package / publish.index-url — machine-readable publish facts
 #   deploy.md                 — Cloud Run image (private AR) + Run URL + public URL if any
 #
@@ -424,6 +425,12 @@ EOF
 )
 fi
 
+PUBLICACAO_SECTION=""
+PUBLICACAO_MD="${STEPS_DIR}/publicacao.md"
+if [[ -f "${PUBLICACAO_MD}" ]]; then
+  PUBLICACAO_SECTION=$'\n'"$(cat "${PUBLICACAO_MD}")"$'\n'
+fi
+
 STEPS_SECTION=""
 if [[ -n "${STEP_ROWS}" ]]; then
   STEPS_SECTION=$(cat <<EOF
@@ -486,6 +493,11 @@ elif [[ -f "${PUBLISH_MD}" && "${TF_EXIT}" == "0" ]]; then
     rc) HEADLINE="Release candidate published" ;;
     production) HEADLINE="Production package published" ;;
   esac
+elif [[ "${TF_EXIT}" == "0" && -f "${STEPS_DIR}/publicar.mode" ]]; then
+  pub_mode="$(tr -d '[:space:]' < "${STEPS_DIR}/publicar.mode" || true)"
+  if [[ "${pub_mode}" == "publicado" ]]; then
+    HEADLINE="Production package published"
+  fi
 fi
 
 BODY=$(cat <<EOF
@@ -498,6 +510,7 @@ ${META_ROWS}
 ${STEPS_SECTION}
 ${DEPLOY_SECTION}
 ${PUBLISH_SECTION}
+${PUBLICACAO_SECTION}
 ${QUALITY_SECTION}
 ${TRIVY_SECTION}
 ${LOG_SECTION}
@@ -505,6 +518,8 @@ ${LOG_SECTION}
 _Posted by Lynko shared Cloud Build reporter (\`${COMMENT_SCOPE}\`)._
 EOF
 )
+mkdir -p "${STEPS_DIR}"
+printf '%s\n' "${BODY}" > "${STEPS_DIR}/pr-comment.md"
 
 API_BASE="https://api.github.com/repos/${OWNER}/${REPO}"
 AUTH_HDR=( -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" )
