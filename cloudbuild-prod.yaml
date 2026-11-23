@@ -121,9 +121,41 @@ steps:
         chmod +x deploy/scripts/report-pr-status.sh
         bash deploy/scripts/report-pr-status.sh
 
-  - id: abrir-release
+  - id: atualizar-readme
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     waitFor: ["report-pr"]
+    allowFailure: true
+    entrypoint: bash
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - BUILD_ID=$BUILD_ID
+      - COMMIT_SHA=$COMMIT_SHA
+      - _REGION=$_REGION
+      - _GITHUB_OWNER=$_GITHUB_OWNER
+      - _GITHUB_REPO=$_GITHUB_REPO
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        mkdir -p /workspace/.ci/steps
+        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/atualizar-readme.exit' EXIT
+        if [ -f /workspace/.ci/skip-build ]; then
+          echo "Este commit já tem o README. Não abre outra pull request."
+          exit 0
+        fi
+        eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
+        qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
+        if [ "${eq}" != "0" ] || [ "${qg}" != "0" ]; then
+          echo "O build não ficou verde. Não abre a pull request do README."
+          exit 1
+        fi
+        apt-get update -qq && apt-get install -y -qq python3 git curl ca-certificates >/dev/null
+        chmod +x scripts/atualizar-readme-release.sh deploy/scripts/configure-github-git.sh
+        bash scripts/atualizar-readme-release.sh
+
+  - id: abrir-release
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["atualizar-readme"]
     allowFailure: true
     entrypoint: bash
     env:
@@ -140,15 +172,9 @@ steps:
         set -euo pipefail
         mkdir -p /workspace/.ci/steps
         trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/abrir-release.exit' EXIT
-        if [ -f /workspace/.ci/skip-build ]; then
-          echo "Commit de registro. Não abre outra release."
+        if [ ! -f /workspace/.ci/skip-build ]; then
+          echo "A tag espera o merge da pull request do README."
           exit 0
-        fi
-        eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
-        qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
-        if [ "${eq}" != "0" ] || [ "${qg}" != "0" ]; then
-          echo "O build não ficou verde. Não abre release."
-          exit 1
         fi
         apt-get update -qq && apt-get install -y -qq python3 git curl ca-certificates >/dev/null
         chmod +x scripts/abrir-release.sh deploy/scripts/configure-github-git.sh

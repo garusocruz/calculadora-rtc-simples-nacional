@@ -1,5 +1,5 @@
-# Release vX.Y.Z. Não refaz o build da lib.
-# Grava no README o build da main e publica essa versão no PyPI.
+# Release vX.Y.Z. Não refaz o build da lib e não altera o README.
+# Publica no PyPI a árvore da tag. Essa árvore já tem a última validação.
 # O ambiente production faz o script de cancelamento sair sem cancelar a tag.
 substitutions:
   _LIB_NAME: calculadora_rtc_simples_nacional
@@ -42,33 +42,9 @@ steps:
         bash /workspace/cloudbuild/cancel-superseded-builds.sh
     waitFor: ["-"]
 
-  - id: atualizar-readme
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    waitFor: ["cancel-superseded-builds"]
-    allowFailure: true
-    entrypoint: bash
-    env:
-      - PROJECT_ID=$PROJECT_ID
-      - TAG_NAME=$TAG_NAME
-      - _GITHUB_OWNER=$_GITHUB_OWNER
-      - _GITHUB_REPO=$_GITHUB_REPO
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        apt-get update -qq && apt-get install -y -qq python3 git curl ca-certificates >/dev/null
-        mkdir -p /workspace/.ci/steps
-        chmod +x scripts/atualizar-readme-release.sh deploy/scripts/configure-github-git.sh
-        set +e
-        bash scripts/atualizar-readme-release.sh
-        code=$$?
-        set -e
-        echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/atualizar-readme.exit
-        exit "$${code}"
-
   - id: publicar
     name: python:3.12-slim
-    waitFor: ["atualizar-readme"]
+    waitFor: ["cancel-superseded-builds"]
     allowFailure: true
     secretEnv: ["PYPI_API_TOKEN"]
     entrypoint: bash
@@ -84,9 +60,8 @@ steps:
           echo "skip publish (_RUN_PUBLISH=${_RUN_PUBLISH})"
           exit 0
         fi
-        readme="$(tr -d '[:space:]' < /workspace/.ci/steps/atualizar-readme.exit || true)"
-        if [ "$${readme}" != "0" ]; then
-          echo "README da release não foi gravado ($${readme}). Não publica."
+        if ! grep -q "o run que validou esta versão" README.md; then
+          echo "O README desta tag não tem a última validação do build. Não publica."
           exit 1
         fi
         export DEBIAN_FRONTEND=noninteractive

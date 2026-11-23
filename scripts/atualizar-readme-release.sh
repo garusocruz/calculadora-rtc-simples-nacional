@@ -1,61 +1,38 @@
 #!/usr/bin/env bash
-# Grava no README o build da main que abriu a release.
-# Não usa o build deste trigger. Não imprime o token.
+# Atualiza o README com o run deste build e abre a pull request para a main.
+# Roda antes da tag. O PyPI publica o commit que já contém este README.
+# Não imprime o token.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
-: "${TAG_NAME:?}"
-TAG="${TAG_NAME}"
+: "${PROJECT_ID:?}"
+: "${BUILD_ID:?}"
+: "${COMMIT_SHA:?}"
+PYVER="$(awk -F'"' '/^version = /{print $2; exit}' pyproject.toml)"
+TAG="${TAG_NAME:-v${PYVER}}"
 if [[ ! "${TAG}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-  echo "TAG_NAME deve ser vX.Y.Z. Veio: ${TAG}" >&2
+  echo "A tag deve ser vX.Y.Z. Veio: ${TAG:-vazio}" >&2
   exit 1
 fi
 VER="${BASH_REMATCH[1]}"
-PYVER="$(awk -F'"' '/^version = /{print $2; exit}' pyproject.toml)"
 if [[ "${PYVER}" != "${VER}" ]]; then
   echo "pyproject.toml está em ${PYVER} e a release é ${VER}" >&2
+  exit 1
+fi
+RESUMO="${ROOT}/.ci/steps/equivalencia-resumo.json"
+if [[ ! -s "${RESUMO}" ]]; then
+  echo "Sem o resumo da equivalência. O README não abre a versão." >&2
   exit 1
 fi
 
 REPO="${_GITHUB_REPO:-${GITHUB_REPO:?}}"
 OWNER="${_GITHUB_OWNER:-${GITHUB_OWNER:-garusocruz}}"
-
-bash "${ROOT}/deploy/scripts/configure-github-git.sh"
-TOKEN_FILE="${CI_GITHUB_TOKEN_FILE:-/workspace/.ci/github_token}"
-if [[ ! -s "${TOKEN_FILE}" ]]; then
-  echo "Sem token do GitHub para ler a release." >&2
-  exit 1
-fi
-TOKEN="$(tr -d '[:space:]' < "${TOKEN_FILE}")"
-
-http="$(curl -sS -o /tmp/gh-release-get.json -w '%{http_code}' \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/${OWNER}/${REPO}/releases/tags/${TAG}")"
-if [[ "${http}" != "200" ]]; then
-  echo "GitHub respondeu ${http} ao ler a release ${TAG}." >&2
-  exit 1
-fi
-
-eval "$(python3 - /tmp/gh-release-get.json <<'PY'
-import json, shlex, sys
-data = json.load(open(sys.argv[1], encoding="utf-8"))
-fields = {}
-for line in (data.get("body") or "").splitlines():
-    if not line.startswith(("Build: ", "Commit: ", "URL: ")):
-        continue
-    key, value = line.split(": ", 1)
-    fields[key] = value.strip()
-for key in ("Build", "Commit", "URL"):
-    if not fields.get(key):
-        raise SystemExit(f"release sem {key} do build da main")
-print(f"MERGE_BUILD={shlex.quote(fields['Build'])}")
-print(f"MERGE_SHA={shlex.quote(fields['Commit'])}")
-print(f"MERGE_URL={shlex.quote(fields['URL'])}")
-PY
-)"
+REGION="${_REGION:-${REGION:-us-central1}}"
+MERGE_BUILD="${BUILD_ID}"
+MERGE_SHA="${COMMIT_SHA}"
+MERGE_URL="https://console.cloud.google.com/cloud-build/builds;region=${REGION}/${BUILD_ID}?project=${PROJECT_ID}"
 
 git fetch origin main
 git checkout -B main origin/main
@@ -63,14 +40,51 @@ git checkout -B main origin/main
 DATE="$(date -u +%Y-%m-%d)"
 python3 - README.md "${TAG}" "${MERGE_BUILD}" "${MERGE_URL}" "${DATE}" "${MERGE_SHA}" <<'PY'
 import json, pathlib, re, sys
+from datetime import datetime, timezone
 path, tag, build, url, date, sha = sys.argv[1:]
 ver = tag[1:] if tag.startswith("v") else tag
-release = json.loads(pathlib.Path("/tmp/gh-release-get.json").read_text(encoding="utf-8"))
-bloco = re.search(
-    r"<!-- ultima-validacao:start -->\n(.*?)\n<!-- ultima-validacao:end -->",
-    release.get("body") or "",
-    re.S,
-)
+root = pathlib.Path(path).resolve().parent
+resumo = json.loads((root / ".ci/steps/equivalencia-resumo.json").read_text(encoding="utf-8"))
+
+def virgula(numero, casas=2):
+    return f"{float(numero):.{casas}f}".replace(".", ",")
+
+meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+agora = datetime.now(timezone.utc)
+quando = f"{agora.day} de {meses[agora.month - 1]} de {agora.year}"
+pytest = f"{resumo['pytest_passaram']} passaram, {resumo['pytest_ignorados']} ignorados, {virgula(resumo['pytest_segundos'])} s"
+cob = root / ".ci/steps/cobertura-python.txt"
+if cob.is_file():
+    stmts, pct = cob.read_text(encoding="utf-8").split()
+    cob_py = f"{pct.replace('.', ',')}% de {stmts} sentenças. O mínimo desta lib é 80%"
+else:
+    raise SystemExit("Sem a cobertura Python. O README não abre a versão.")
+if resumo.get("java_linhas") and resumo.get("java_cobertas") is not None:
+    linhas = resumo["java_linhas"]
+    cobertas = resumo["java_cobertas"]
+    pct_java = virgula(100 * cobertas / linhas) if linhas else "0,00"
+    cob_java = (
+        f"{pct_java}% de {linhas} linhas ({cobertas} cobertas). "
+        "JaCoCo do `mvn test` daquele commit, sem a classe `*Application`, como no `pom.xml` oficial. "
+        "O workflow oficial exige 80% de linhas"
+    )
+else:
+    raise SystemExit("Sem o JaCoCo. O README não abre a versão.")
+bloco = f"""## Última validação
+
+Data: {quando}. Os números abaixo são do Cloud Build [`{build}`]({url}), o run que validou esta versão.
+
+| Checagem | Saída |
+| --- | --- |
+| Maven test | a suíte Java do pin passou |
+| Pytest | {pytest} |
+| Cobertura Python | {cob_py} |
+| Cobertura Java do pin | {cob_java} |
+| Java no corte daquele run | {resumo['java_unitarios']} unitários, {resumo['java_e2e']} e2e |
+| Python no relatório | {resumo['python_chaves']} chaves |
+| Sem par | {resumo['sem_par']} |
+| Resultado diferente | {resumo['diferente']} |
+| Frase final | `Equivalência: a mesma suíte passou nas duas.` |"""
 text = pathlib.Path(path).read_text(encoding="utf-8")
 start = "<!-- release-runs:start -->"
 end = "<!-- release-runs:end -->"
@@ -113,9 +127,19 @@ if bloco:
     if ancora in text and proxima in text:
         antes, resto = text.split(ancora, 1)
         _, depois = resto.split(proxima, 1)
-        text = f"{antes}{ancora}\n\n{bloco.group(1).strip()}\n\n{proxima}{depois}"
+        text = f"{antes}{ancora}\n\n{bloco.strip()}\n\n{proxima}{depois}"
+    else:
+        raise SystemExit("README sem a seção de última validação")
 pathlib.Path(path).write_text(text, encoding="utf-8")
 PY
+
+bash "${ROOT}/deploy/scripts/configure-github-git.sh"
+TOKEN_FILE="${CI_GITHUB_TOKEN_FILE:-/workspace/.ci/github_token}"
+if [[ ! -s "${TOKEN_FILE}" ]]; then
+  echo "Sem token do GitHub para abrir a pull request do README." >&2
+  exit 1
+fi
+TOKEN="$(tr -d '[:space:]' < "${TOKEN_FILE}")"
 
 BRANCH="docs/release-${TAG}"
 git checkout -B "${BRANCH}"
