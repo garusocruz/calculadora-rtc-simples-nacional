@@ -22,12 +22,10 @@ fi
 
 poetry install --with dev --no-ansi
 
-if [[ -e .git ]]; then
+if [[ -e .git && -f .pre-commit-config.yaml ]]; then
   git config --unset-all core.hooksPath 2>/dev/null || true
-  hook_dir="$(git rev-parse --git-path hooks)"
-  mkdir -p "${hook_dir}"
-  ln -sfn "${ROOT}/scripts/hooks/pre-push.sh" "${hook_dir}/pre-push"
-  echo "OK: pre-push em ${hook_dir}"
+  poetry run pre-commit install --hook-type pre-commit --hook-type pre-push --hook-type commit-msg
+  echo "OK: pre-commit, pre-push e commit-msg em $(git rev-parse --git-path hooks)"
 fi
 
 echo "OK: install complete"

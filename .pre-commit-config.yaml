@@ -1,7 +1,8 @@
 # Local git hooks. Same pattern as fast_flow.
 #
 # Install once:
-#   bash scripts/bootstrap-dev.sh
+#   ./install.sh
+#   # or: bash scripts/bootstrap-dev.sh
 #
 # CB merge gate remains scripts/ci-quality-gates.sh plus scripts/equivalencia.sh.
 
