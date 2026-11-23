@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "calculadora-rtc-simples-nacional"
 version = "0.4.1"
-description = "Cálculo de CBS e IBS do Simples Nacional. Transcrição em Python da calculadora pública da Receita Federal."
+description = "Implementação independente, em Python, da calculadora de código aberto da Receita Federal para o Simples Nacional. Não é produto oficial nem homologado."
 authors = ["Garuso Cruz <garustoec@gmail.com>"]
 license = "MIT"
 readme = "README.md"

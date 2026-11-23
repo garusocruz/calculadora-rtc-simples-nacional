@@ -61,3 +61,4 @@ A `0.4.0` ficou na `main` e no PyPI. Esta versão gera o JaCoCo que o README da 
 
 - Depois do `mvn test`, a suíte roda `jacoco:report`.
 - Sem o relatório de linhas, a equivalência falha antes de gravar o README.
+- O README diz que não é projeto oficial, homologado ou certificado, e que a alíquota efetiva do Simples entra pronta.
