@@ -61,6 +61,8 @@ run_selftests() {
   local required=(
     cloudbuild.yaml
     cloudbuild-prod.yaml
+    cloudbuild-release.yaml
+    scripts/atualizar-readme-release.sh
     trivy.yaml
     .trivyignore.yaml
     trivy-secret.yaml

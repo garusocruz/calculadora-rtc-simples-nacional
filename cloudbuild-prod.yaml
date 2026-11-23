@@ -1,21 +1,16 @@
-# Push na main. Equivalência, quality gates e publicação da versão do pyproject no PyPI.
-# É a única versão publicada: a de produção. Não publica no Artifact Registry.
+# Push na main. Equivalência, quality gates e comentário. Não publica.
+# A release vX.Y.Z usa cloudbuild-release.yaml e publica no PyPI.
 substitutions:
   _LIB_NAME: calculadora_rtc_simples_nacional
   _ENVIRONMENT: production
   _REGION: us-central1
   _RUN_TERRAFORM: "0"
-  _RUN_PUBLISH: "1"
+  _RUN_PUBLISH: "0"
   _GITHUB_OWNER: garusocruz
   _GITHUB_REPO: calculadora-rtc-simples-nacional
   _CONTEXT: calculadora-rtc-simples-nacional
 
 timeout: 3600s
-
-availableSecrets:
-  secretManager:
-    - versionName: projects/$PROJECT_ID/secrets/PYPI_API_TOKEN/versions/latest
-      env: PYPI_API_TOKEN
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -70,58 +65,10 @@ steps:
         echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/quality-gates.exit
         exit "$${code}"
 
-  - id: publicar
-    name: python:3.12-slim
-    waitFor: ["quality-gates"]
-    allowFailure: true
-    secretEnv: ["PYPI_API_TOKEN"]
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        mkdir -p /workspace/.ci/steps
-        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/publicar.exit' EXIT
-        if [ "${_RUN_PUBLISH}" != "1" ]; then
-          echo "skip publish (_RUN_PUBLISH=${_RUN_PUBLISH})"
-          exit 0
-        fi
-        export DEBIAN_FRONTEND=noninteractive
-        apt-get update -qq
-        apt-get install -y -qq curl ca-certificates
-        pip install -q poetry
-        nome="$$(awk -F'"' '/^name = /{print $$2; exit}' pyproject.toml)"
-        versao="$$(poetry version -s)"
-        python3 - CHANGELOG.md "$${versao}" <<'PY'
-        import pathlib, sys
-        path, ver = sys.argv[1], sys.argv[2]
-        text = pathlib.Path(path).read_text(encoding="utf-8") if pathlib.Path(path).exists() else ""
-        heading = f"## {ver}"
-        start = text.find(heading)
-        if start < 0:
-            raise SystemExit(f"CHANGELOG.md não tem a seção {heading}")
-        rest = text[start + len(heading):]
-        nxt = rest.find("\n## ")
-        body = rest if nxt < 0 else rest[:nxt]
-        print(f"── mudanças da {ver} ──")
-        print(body.strip())
-        PY
-        codigo="$$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/$${nome}/$${versao}/json")"
-        if [[ "$${codigo}" == "200" ]]; then
-          echo "A versão $${versao} já está no PyPI. O merge não gera outra."
-          exit 0
-        fi
-        if [[ "$${codigo}" != "404" ]]; then
-          echo "O PyPI respondeu $${codigo}. Não publica."
-          exit 1
-        fi
-        poetry config pypi-token.pypi "$$PYPI_API_TOKEN"
-        poetry publish --build --no-interaction
-
   - id: report-pr
     allowFailure: true
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    waitFor: ["publicar"]
+    waitFor: ["quality-gates"]
     entrypoint: bash
     env:
       - PROJECT_ID=$PROJECT_ID
