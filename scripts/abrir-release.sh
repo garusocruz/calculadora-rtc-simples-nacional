@@ -50,7 +50,56 @@ fi
 
 python3 - "${TAG}" "${COMMIT_SHA}" "${BUILD_ID}" "${URL}" "${VER}" "${ROOT}/CHANGELOG.md" "${CI_STEPS_DIR:-/workspace/.ci/steps}/pr-comment.md" /tmp/gh-release-create.json <<'PY'
 import json, pathlib, sys
+from datetime import datetime, timezone
 tag, sha, build, url, ver, notes_path, comment_path, dest = sys.argv[1:]
+steps = pathlib.Path(comment_path).parent
+
+def virgula(numero, casas=2):
+    return f"{float(numero):.{casas}f}".replace(".", ",")
+
+def secao_validacao():
+    resumo = steps / "equivalencia-resumo.json"
+    if not resumo.is_file():
+        return ""
+    dados = json.loads(resumo.read_text(encoding="utf-8"))
+    meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+    agora = datetime.now(timezone.utc)
+    data = f"{agora.day} de {meses[agora.month - 1]} de {agora.year}"
+    pytest = f"{dados['pytest_passaram']} passaram, {dados['pytest_ignorados']} ignorados, {virgula(dados['pytest_segundos'])} s"
+    cobertura = steps / "cobertura-python.txt"
+    if cobertura.is_file():
+        stmts, pct = cobertura.read_text(encoding="utf-8").split()
+        cob_py = f"{pct.replace('.', ',')}% de {stmts} sentenças. O mínimo desta lib é 80%"
+    else:
+        cob_py = "o quality gate não gravou a cobertura"
+    if dados.get("java_linhas") and dados.get("java_cobertas") is not None:
+        linhas = dados["java_linhas"]
+        cobertas = dados["java_cobertas"]
+        pct_java = virgula(100 * cobertas / linhas) if linhas else "0,00"
+        cob_java = (
+            f"{pct_java}% de {linhas} linhas ({cobertas} cobertas). "
+            "JaCoCo do `mvn test` daquele commit, sem a classe `*Application`, como no `pom.xml` oficial. "
+            "O workflow oficial exige 80% de linhas"
+        )
+    else:
+        cob_java = "a suíte Java do pin passou. O JaCoCo não gravou o relatório neste run"
+    miolo = f"""## Última validação
+
+Data: {data}. Os números abaixo são do Cloud Build [`{build}`]({url}), o run que validou esta versão.
+
+| Checagem | Saída |
+| --- | --- |
+| Maven test | a suíte Java do pin passou |
+| Pytest | {pytest} |
+| Cobertura Python | {cob_py} |
+| Cobertura Java do pin | {cob_java} |
+| Java no corte daquele run | {dados['java_unitarios']} unitários, {dados['java_e2e']} e2e |
+| Python no relatório | {dados['python_chaves']} chaves |
+| Sem par | {dados['sem_par']} |
+| Resultado diferente | {dados['diferente']} |
+| Frase final | `Equivalência: a mesma suíte passou nas duas.` |"""
+    return f"<!-- ultima-validacao:start -->\n{miolo.strip()}\n<!-- ultima-validacao:end -->"
+
 notes = ""
 changelog = pathlib.Path(notes_path)
 if changelog.is_file():
@@ -71,7 +120,8 @@ comment = ""
 comment_file = pathlib.Path(comment_path)
 if comment_file.is_file():
     comment = comment_file.read_text(encoding="utf-8").strip()
-parts = [part for part in (notes, comment) if part]
+validacao = secao_validacao()
+parts = [part for part in (notes, validacao, comment) if part]
 parts.append(f"Build: {build}\nCommit: {sha}\nURL: {url}")
 body = "\n\n".join(parts) + "\n"
 pathlib.Path(dest).write_text(

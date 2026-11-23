@@ -162,9 +162,13 @@ run_pytest() {
   rc=$?
   set -e
   printf '%s\n' "${out}" >>"${LOG_FILE}"
-  PYTEST_COV="$(printf '%s\n' "${out}" | sed -nE 's/^TOTAL[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+([0-9]+)%/\1/p' | tail -n1)"
+  PYTEST_COV="$(printf '%s\n' "${out}" | sed -nE 's/^TOTAL[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+([0-9]+([.][0-9]+)?)%/\1/p' | tail -n1)"
+  PYTEST_STMTS="$(printf '%s\n' "${out}" | sed -nE 's/^TOTAL[[:space:]]+([0-9]+)[[:space:]]+.*/\1/p' | tail -n1)"
   if [[ -n "${PYTEST_COV}" ]]; then
     log "pytest coverage: ${PYTEST_COV}% (fail-under=${COVERAGE_FAIL_UNDER})"
+  fi
+  if [[ -n "${PYTEST_COV}" && -n "${PYTEST_STMTS}" ]]; then
+    printf '%s %s\n' "${PYTEST_STMTS}" "${PYTEST_COV}" > "${STEPS_DIR}/cobertura-python.txt"
   fi
   if [[ "${rc}" -eq 0 ]]; then
     local detail="ok"
