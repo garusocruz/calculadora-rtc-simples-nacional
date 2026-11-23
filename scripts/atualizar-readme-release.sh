@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Atualiza o README com o run deste build e abre a pull request para a main.
-# Roda antes da tag. O PyPI publica o commit que já contém este README.
-# Não imprime o token.
+# Grava no README os insumos do build da lib e os insumos deste run.
+# Não commita, não abre tag e não publica. O passo seguinte faz isso na mesma esteira.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -26,16 +25,16 @@ if [[ ! -s "${RESUMO}" ]]; then
   echo "Sem o resumo da equivalência. O README não abre a versão." >&2
   exit 1
 fi
+BUILD_LIB="${ROOT}/.ci/steps/build-lib.txt"
+if [[ ! -s "${BUILD_LIB}" ]]; then
+  echo "Sem o build da lib. O README não abre a versão." >&2
+  exit 1
+fi
 
-REPO="${_GITHUB_REPO:-${GITHUB_REPO:?}}"
-OWNER="${_GITHUB_OWNER:-${GITHUB_OWNER:-garusocruz}}"
 REGION="${_REGION:-${REGION:-us-central1}}"
 MERGE_BUILD="${BUILD_ID}"
 MERGE_SHA="${COMMIT_SHA}"
 MERGE_URL="https://console.cloud.google.com/cloud-build/builds;region=${REGION}/${BUILD_ID}?project=${PROJECT_ID}"
-
-git fetch origin main
-git checkout -B main origin/main
 
 DATE="$(date -u +%Y-%m-%d)"
 python3 - README.md "${TAG}" "${MERGE_BUILD}" "${MERGE_URL}" "${DATE}" "${MERGE_SHA}" <<'PY'
@@ -45,6 +44,18 @@ path, tag, build, url, date, sha = sys.argv[1:]
 ver = tag[1:] if tag.startswith("v") else tag
 root = pathlib.Path(path).resolve().parent
 resumo = json.loads((root / ".ci/steps/equivalencia-resumo.json").read_text(encoding="utf-8"))
+meta = {}
+for line in (root / ".ci/steps/build-lib.txt").read_text(encoding="utf-8").splitlines():
+    if "=" not in line:
+        continue
+    chave, valor = line.split("=", 1)
+    meta[chave.strip()] = valor.strip()
+sdist = meta.get("sdist") or ""
+wheel = meta.get("wheel") or ""
+if not sdist or not wheel:
+    raise SystemExit("O build da lib não gravou o sdist e o wheel.")
+if meta.get("version") and meta["version"] != ver:
+    raise SystemExit(f"O build da lib é {meta['version']} e a release é {ver}.")
 
 def virgula(numero, casas=2):
     return f"{float(numero):.{casas}f}".replace(".", ",")
@@ -84,6 +95,7 @@ Data: {quando}. Os números abaixo são do Cloud Build [`{build}`]({url}), o run
 | Python no relatório | {resumo['python_chaves']} chaves |
 | Sem par | {resumo['sem_par']} |
 | Resultado diferente | {resumo['diferente']} |
+| Pacote deste run | `{sdist}` e `{wheel}` |
 | Frase final | `Equivalência: a mesma suíte passou nas duas.` |"""
 text = pathlib.Path(path).read_text(encoding="utf-8")
 start = "<!-- release-runs:start -->"
@@ -92,6 +104,7 @@ block = (
     f"{start}\n"
     f"Release `{tag}` em {date}. "
     f"Build [`{build}`]({url}) no commit `{sha}`.\n"
+    f"Pacote deste run: `{sdist}` e `{wheel}`.\n"
     f"{end}"
 )
 if start not in text or end not in text:
@@ -133,62 +146,4 @@ if bloco:
 pathlib.Path(path).write_text(text, encoding="utf-8")
 PY
 
-bash "${ROOT}/deploy/scripts/configure-github-git.sh"
-TOKEN_FILE="${CI_GITHUB_TOKEN_FILE:-/workspace/.ci/github_token}"
-if [[ ! -s "${TOKEN_FILE}" ]]; then
-  echo "Sem token do GitHub para abrir a pull request do README." >&2
-  exit 1
-fi
-TOKEN="$(tr -d '[:space:]' < "${TOKEN_FILE}")"
-
-BRANCH="docs/release-${TAG}"
-git checkout -B "${BRANCH}"
-git add README.md
-if git diff --cached --quiet; then
-  echo "README já registra este run"
-  exit 0
-fi
-git -c user.name="Lynko CI" -c user.email="ci@lynko.click" \
-  commit -m "docs: registra o run da release ${TAG}"
-
-OUT="$(mktemp)"
-if ! git push origin "HEAD:${BRANCH}" >"${OUT}" 2>&1; then
-  sed -E 's#x-access-token:[^@]+#x-access-token:REDACTED#g' "${OUT}" >&2
-  exit 1
-fi
-
-python3 - "${OWNER}" "${REPO}" "${BRANCH}" "${TAG}" "${MERGE_BUILD}" "${MERGE_URL}" /tmp/gh-readme-pr.json <<'PY'
-import json, pathlib, sys
-owner, repo, branch, tag, build, url, dest = sys.argv[1:]
-body = (
-    f"## Summary\n"
-    f"- A release `{tag}` grava o run no README e aponta a versão pública.\n"
-    f"- Build [`{build}`]({url}).\n\n"
-    f"## Context\n"
-    f"- O trigger da release não escreve na `main`. Esta pull request leva o README.\n"
-)
-pathlib.Path(dest).write_text(
-    json.dumps({"title": f"docs: registra o run da release {tag}", "head": branch, "base": "main", "body": body}),
-    encoding="utf-8",
-)
-PY
-existing="$(curl -sS -o /tmp/gh-readme-prs.json -w '%{http_code}' \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/${OWNER}/${REPO}/pulls?head=${OWNER}:${BRANCH}&state=open")"
-if [[ "${existing}" == "200" ]] && python3 -c 'import json,sys; sys.exit(0 if json.load(open("/tmp/gh-readme-prs.json")) else 1)'; then
-  echo "A pull request de ${BRANCH} já está aberta."
-  exit 0
-fi
-pr="$(curl -sS -o /tmp/gh-readme-pr-created.json -w '%{http_code}' \
-  -X POST \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Accept: application/vnd.github+json" \
-  -H "Content-Type: application/json" \
-  --data-binary @/tmp/gh-readme-pr.json \
-  "https://api.github.com/repos/${OWNER}/${REPO}/pulls")"
-if [[ "${pr}" != "201" ]]; then
-  echo "GitHub respondeu ${pr} ao abrir a pull request de ${BRANCH}." >&2
-  exit 1
-fi
-echo "Pull request da release ${TAG} aberta para a main de ${OWNER}/${REPO}"
+echo "README gravado com o build e com o run ${MERGE_BUILD}."

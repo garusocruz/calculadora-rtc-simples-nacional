@@ -1,5 +1,5 @@
-# Release vX.Y.Z. Não refaz o build da lib e não altera o README.
-# Publica no PyPI a árvore da tag. Essa árvore já tem a última validação.
+# Tag vX.Y.Z. Não refaz o build, não altera o README e não publica.
+# A esteira da main já publicou no PyPI. Este trigger só confere o README e o índice.
 # O ambiente production faz o script de cancelamento sair sem cancelar a tag.
 substitutions:
   _LIB_NAME: calculadora_rtc_simples_nacional
@@ -11,11 +11,6 @@ substitutions:
   _CONTEXT: calculadora-rtc-simples-nacional
 
 timeout: 3600s
-
-availableSecrets:
-  secretManager:
-    - versionName: projects/$PROJECT_ID/secrets/PYPI_API_TOKEN/versions/latest
-      env: PYPI_API_TOKEN
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -46,7 +41,6 @@ steps:
     name: python:3.12-slim
     waitFor: ["cancel-superseded-builds"]
     allowFailure: true
-    secretEnv: ["PYPI_API_TOKEN"]
     entrypoint: bash
     env:
       - TAG_NAME=$TAG_NAME
@@ -60,31 +54,10 @@ steps:
           echo "skip publish (_RUN_PUBLISH=${_RUN_PUBLISH})"
           exit 0
         fi
-        if ! grep -q "o run que validou esta versão" README.md; then
-          echo "O README desta tag não tem a última validação do build. Não publica."
-          exit 1
-        fi
         export DEBIAN_FRONTEND=noninteractive
-        apt-get update -qq && apt-get install -y -qq curl ca-certificates
-        pip install -q poetry
-        nome="$$(awk -F'"' '/^name = /{print $$2; exit}' pyproject.toml)"
-        versao="$$(poetry version -s)"
-        tag="$${TAG_NAME#v}"
-        if [ "$${tag}" != "$${versao}" ]; then
-          echo "A release $${TAG_NAME} não é a versão $${versao}. Não publica."
-          exit 1
-        fi
-        codigo="$$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/$${nome}/$${versao}/json")"
-        if [[ "$${codigo}" == "200" ]]; then
-          echo "A versão $${versao} já está no PyPI."
-          exit 0
-        fi
-        if [[ "$${codigo}" != "404" ]]; then
-          echo "O PyPI respondeu $${codigo}. Não publica."
-          exit 1
-        fi
-        poetry config pypi-token.pypi "$$PYPI_API_TOKEN"
-        poetry publish --build --no-interaction
+        apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null
+        chmod +x scripts/conferir-versao-publicada.sh
+        bash scripts/conferir-versao-publicada.sh
 
   - id: report-pr
     allowFailure: true

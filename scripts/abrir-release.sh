@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Abre a release vX.Y.Z no commit do README que já está na main.
-# O corpo copia a Última validação e o bloco da release desse README,
-# gravados pela esteira do merge que rodou a suíte. Não gera outra tabela.
-# O PyPI fica para o trigger da release. Não imprime o token.
+# Abre a release vX.Y.Z no commit que já tem o README deste run.
+# O corpo copia a Última validação e o bloco da release desse README.
+# TARGET_SHA é o commit do README. Sem ele, usa o commit do merge.
+# Não publica no PyPI. Não imprime o token.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -21,7 +21,7 @@ if [[ "${PYVER}" != "${VER}" ]]; then
 fi
 
 : "${PROJECT_ID:?}"
-: "${COMMIT_SHA:?}"
+SHA="${TARGET_SHA:-${COMMIT_SHA:?}}"
 REPO="${_GITHUB_REPO:-${GITHUB_REPO:?}}"
 OWNER="${_GITHUB_OWNER:-${GITHUB_OWNER:-garusocruz}}"
 
@@ -46,7 +46,7 @@ if [[ "${http}" != "404" ]]; then
   exit 1
 fi
 
-python3 - "${TAG}" "${COMMIT_SHA}" "${VER}" "${ROOT}/CHANGELOG.md" /tmp/gh-release-create.json <<'PY'
+python3 - "${TAG}" "${SHA}" "${VER}" "${ROOT}/CHANGELOG.md" /tmp/gh-release-create.json <<'PY'
 import json, pathlib, sys
 tag, sha, ver, notes_path, dest = sys.argv[1:]
 readme = pathlib.Path("README.md").read_text(encoding="utf-8")
@@ -99,7 +99,7 @@ create="$(curl -sS -o /tmp/gh-release-created.json -w '%{http_code}' \
   --data-binary @/tmp/gh-release-create.json \
   "https://api.github.com/repos/${OWNER}/${REPO}/releases")"
 if [[ "${create}" == "201" ]]; then
-  echo "Release ${TAG} aberta em ${COMMIT_SHA}. O corpo é a Última validação do README."
+  echo "Release ${TAG} aberta em ${SHA}. O corpo é a Última validação do README."
   exit 0
 fi
 if [[ "${create}" == "422" ]]; then

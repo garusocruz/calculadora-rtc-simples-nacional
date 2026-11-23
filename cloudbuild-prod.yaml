@@ -1,5 +1,6 @@
-# Push na main. Equivalência e quality gates. Não publica no PyPI.
-# Se a versão ainda não tem release, abre vX.Y.Z com este build. O trigger da release publica.
+# Push na main. Depois do quality gate, o mesmo run faz o build, grava o README,
+# publica no PyPI, abre a tag e abre a pull request do README para a main.
+# O commit desse README confere que a versão já está publicada e não repete nada.
 # O cancelamento desta branch recebe o ambiente main. production faria o script pular.
 substitutions:
   _LIB_NAME: calculadora_rtc_simples_nacional
@@ -10,6 +11,11 @@ substitutions:
   _GITHUB_OWNER: garusocruz
   _GITHUB_REPO: calculadora-rtc-simples-nacional
   _CONTEXT: calculadora-rtc-simples-nacional
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/PYPI_API_TOKEN/versions/latest
+      env: PYPI_API_TOKEN
 
 timeout: 3600s
 
@@ -38,9 +44,29 @@ steps:
         bash /workspace/cloudbuild/cancel-superseded-builds.sh
     waitFor: ["-"]
 
+  - id: versao-publicada
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["cancel-superseded-builds"]
+    allowFailure: true
+    entrypoint: bash
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - _GITHUB_OWNER=$_GITHUB_OWNER
+      - _GITHUB_REPO=$_GITHUB_REPO
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        mkdir -p /workspace/.ci/steps
+        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/versao-publicada.exit' EXIT
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -qq && apt-get install -y -qq curl ca-certificates git >/dev/null
+        chmod +x scripts/versao-ja-publicada.sh deploy/scripts/configure-github-git.sh
+        bash scripts/versao-ja-publicada.sh
+
   - id: equivalencia
     name: eclipse-temurin:25-jdk
-    waitFor: ["cancel-superseded-builds"]
+    waitFor: ["versao-publicada"]
     allowFailure: true
     entrypoint: bash
     args:
@@ -54,10 +80,8 @@ steps:
         /opt/venv/bin/pip install pytest pytest-cov
         export PATH="/opt/venv/bin:$$PATH"
         mkdir -p /workspace/.ci/steps
-        subject="$(git log -1 --format=%s)"
-        if [[ "$${subject}" == "docs: registra o run da release "* ]]; then
-          echo "Commit de registro. O build da lib já rodou no merge."
-          echo skip > /workspace/.ci/skip-build
+        if [ -f /workspace/.ci/skip-build ]; then
+          echo "Versão já publicada. Não repete a suíte."
           echo 0 | tee /workspace/.ci/exit_code > /workspace/.ci/steps/equivalencia.exit
           exit 0
         fi
@@ -98,10 +122,132 @@ steps:
         echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/quality-gates.exit
         exit "$${code}"
 
+  - id: build-lib
+    name: python:3.12-slim
+    waitFor: ["quality-gates"]
+    allowFailure: true
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        mkdir -p /workspace/.ci/steps
+        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/build-lib.exit' EXIT
+        if [ -f /workspace/.ci/skip-build ]; then
+          echo "Commit do README. Não refaz o build da lib."
+          exit 0
+        fi
+        eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
+        qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
+        if [ "$${eq}" != "0" ] || [ "$${qg}" != "0" ]; then
+          echo "O quality gate não ficou verde. Não faz o build da lib."
+          exit 1
+        fi
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -qq && apt-get install -y -qq ca-certificates >/dev/null
+        pip install -q poetry
+        chmod +x scripts/build-lib.sh
+        bash scripts/build-lib.sh
+
+  - id: atualizar-readme
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["build-lib"]
+    allowFailure: true
+    entrypoint: bash
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - BUILD_ID=$BUILD_ID
+      - COMMIT_SHA=$COMMIT_SHA
+      - _REGION=$_REGION
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        mkdir -p /workspace/.ci/steps
+        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/atualizar-readme.exit' EXIT
+        if [ -f /workspace/.ci/skip-build ]; then
+          echo "Commit do README. Não grava o README de novo."
+          exit 0
+        fi
+        eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
+        qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
+        bl="$(tr -d '[:space:]' < /workspace/.ci/steps/build-lib.exit || true)"
+        if [ "$${eq}" != "0" ] || [ "$${qg}" != "0" ] || [ "$${bl}" != "0" ]; then
+          echo "O build não ficou verde. Não grava o README."
+          exit 1
+        fi
+        apt-get update -qq && apt-get install -y -qq python3 >/dev/null
+        chmod +x scripts/atualizar-readme-release.sh
+        bash scripts/atualizar-readme-release.sh
+
+  - id: publicar
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["atualizar-readme"]
+    allowFailure: true
+    secretEnv: ["PYPI_API_TOKEN"]
+    entrypoint: bash
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - BUILD_ID=$BUILD_ID
+      - COMMIT_SHA=$COMMIT_SHA
+      - _REGION=$_REGION
+      - _GITHUB_OWNER=$_GITHUB_OWNER
+      - _GITHUB_REPO=$_GITHUB_REPO
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        mkdir -p /workspace/.ci/steps
+        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/publicar.exit' EXIT
+        if [ ! -f /workspace/.ci/skip-build ]; then
+          eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
+          qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
+          bl="$(tr -d '[:space:]' < /workspace/.ci/steps/build-lib.exit || true)"
+          rd="$(tr -d '[:space:]' < /workspace/.ci/steps/atualizar-readme.exit || true)"
+          if [ "$${eq}" != "0" ] || [ "$${qg}" != "0" ] || [ "$${bl}" != "0" ] || [ "$${rd}" != "0" ]; then
+            echo "O build não ficou verde. Não publica."
+            exit 1
+          fi
+        fi
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -qq && apt-get install -y -qq python3 python3-pip python3-venv git curl ca-certificates >/dev/null
+        python3 -m venv /opt/poetry-venv
+        /opt/poetry-venv/bin/pip install -q poetry
+        export PATH="/opt/poetry-venv/bin:$$PATH"
+        chmod +x scripts/publicar-versao.sh scripts/conferir-versao-publicada.sh scripts/abrir-release.sh deploy/scripts/configure-github-git.sh
+        bash scripts/publicar-versao.sh
+
+  - id: abrir-pr
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ["publicar"]
+    allowFailure: true
+    entrypoint: bash
+    env:
+      - PROJECT_ID=$PROJECT_ID
+      - BUILD_ID=$BUILD_ID
+      - COMMIT_SHA=$COMMIT_SHA
+      - _REGION=$_REGION
+      - _GITHUB_OWNER=$_GITHUB_OWNER
+      - _GITHUB_REPO=$_GITHUB_REPO
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        mkdir -p /workspace/.ci/steps
+        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/abrir-pr.exit' EXIT
+        pub="$(tr -d '[:space:]' < /workspace/.ci/steps/publicar.exit || true)"
+        if [ "$${pub}" != "0" ]; then
+          echo "A publicação não ficou verde. Não abre a pull request."
+          exit 1
+        fi
+        apt-get update -qq && apt-get install -y -qq python3 git curl ca-certificates >/dev/null
+        chmod +x scripts/abrir-pr-readme.sh deploy/scripts/configure-github-git.sh
+        bash scripts/abrir-pr-readme.sh
+
   - id: report-pr
     allowFailure: true
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    waitFor: ["quality-gates"]
+    waitFor: ["abrir-pr"]
     entrypoint: bash
     env:
       - PROJECT_ID=$PROJECT_ID
@@ -118,71 +264,15 @@ steps:
       - |
         set -euo pipefail
         apt-get update -qq && apt-get install -y -qq python3 >/dev/null
+        if [ -s /workspace/.ci/steps/readme-pr.number ]; then
+          export _PR_NUMBER="$$(tr -d '[:space:]' < /workspace/.ci/steps/readme-pr.number)"
+        fi
         chmod +x deploy/scripts/report-pr-status.sh
         bash deploy/scripts/report-pr-status.sh
 
-  - id: atualizar-readme
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    waitFor: ["report-pr"]
-    allowFailure: true
-    entrypoint: bash
-    env:
-      - PROJECT_ID=$PROJECT_ID
-      - BUILD_ID=$BUILD_ID
-      - COMMIT_SHA=$COMMIT_SHA
-      - _REGION=$_REGION
-      - _GITHUB_OWNER=$_GITHUB_OWNER
-      - _GITHUB_REPO=$_GITHUB_REPO
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        mkdir -p /workspace/.ci/steps
-        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/atualizar-readme.exit' EXIT
-        if [ -f /workspace/.ci/skip-build ]; then
-          echo "Este commit já tem o README. Não abre outra pull request."
-          exit 0
-        fi
-        eq="$(tr -d '[:space:]' < /workspace/.ci/steps/equivalencia.exit || true)"
-        qg="$(tr -d '[:space:]' < /workspace/.ci/steps/quality-gates.exit || true)"
-        if [ "${eq}" != "0" ] || [ "${qg}" != "0" ]; then
-          echo "O build não ficou verde. Não abre a pull request do README."
-          exit 1
-        fi
-        apt-get update -qq && apt-get install -y -qq python3 git curl ca-certificates >/dev/null
-        chmod +x scripts/atualizar-readme-release.sh deploy/scripts/configure-github-git.sh
-        bash scripts/atualizar-readme-release.sh
-
-  - id: abrir-release
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    waitFor: ["atualizar-readme"]
-    allowFailure: true
-    entrypoint: bash
-    env:
-      - PROJECT_ID=$PROJECT_ID
-      - BUILD_ID=$BUILD_ID
-      - COMMIT_SHA=$COMMIT_SHA
-      - TAG_NAME=$TAG_NAME
-      - _REGION=$_REGION
-      - _GITHUB_OWNER=$_GITHUB_OWNER
-      - _GITHUB_REPO=$_GITHUB_REPO
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        mkdir -p /workspace/.ci/steps
-        trap 'code=$$?; echo "$${code}" | tee /workspace/.ci/exit_code > /workspace/.ci/steps/abrir-release.exit' EXIT
-        if [ ! -f /workspace/.ci/skip-build ]; then
-          echo "A tag espera o merge da pull request do README."
-          exit 0
-        fi
-        apt-get update -qq && apt-get install -y -qq python3 git curl ca-certificates >/dev/null
-        chmod +x scripts/abrir-release.sh deploy/scripts/configure-github-git.sh
-        bash scripts/abrir-release.sh
-
   - id: pipeline-gate
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    waitFor: ["report-pr", "abrir-release"]
+    waitFor: ["report-pr"]
     entrypoint: bash
     args:
       - -c
