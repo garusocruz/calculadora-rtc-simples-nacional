@@ -23,7 +23,8 @@ flowchart TD
   tipo -->|sim| pula[não repete a suíte]
   pula --> semOutraPr[Não abre outra pull request do README]
   semOutraPr --> tag[abre a tag vX.Y.Z neste commit]
-  tag --> rel[trigger calculadora-rtc-simples-nacional-release]
+  tag --> copia[o corpo da release copia a Última validação do README]
+  copia --> rel[trigger calculadora-rtc-simples-nacional-release]
   rel --> segue[não cancela a tag e não mexe no README]
   segue --> frase{README tem a frase do run?}
   frase -->|não| recusa[Não publica]
@@ -87,6 +88,6 @@ flowchart TD
 
 Um commit novo na mesma pull request ou na `main` cancela o Cloud Build anterior. A tag não cancela. No build da `main` o passo de cancelamento recebe o ambiente `main`, porque `production` faria o script pular. O restante do build da `main` continua com o rótulo `production` para o comentário da pull request.
 
-O trigger da release não escreve na `main`. A seção Última validação entra na pull request `docs/release-vX.Y.Z`, com os números do build da `main` que validou a versão, não o pre-push local. A tag nasce do merge desse commit. Sem a frase `o run que validou esta versão` no README da tag, o PyPI não recebe o pacote.
+O trigger da release não escreve na `main`. A seção Última validação entra na pull request `docs/release-vX.Y.Z`, com os números da esteira do merge que rodou a suíte. A tag nasce do merge desse commit e o corpo da release copia essa seção e o bloco da release. Sem a frase `o run que validou esta versão` no README da tag, a release não abre e o PyPI não recebe o pacote.
 
 O passo `report-pr` está no `cloudbuild.yaml`. A imagem `cloud-sdk:slim` não traz `python3`, então o passo instala. O comentário lê o secret `lynko-github-ci-token`. No build `734e3d4d` o script não achou o `python3` e o GitHub respondeu 403. Sem Issues: Write neste repositório, o passo não comenta e o `pipeline-gate` segue. A pull request do README e a tag precisam de Contents: Write no mesmo token.
