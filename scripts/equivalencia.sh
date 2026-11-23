@@ -86,6 +86,9 @@ test -f "${DB}"
 
 echo "── suíte Java (unitária e e2e) ──"
 (cd "${JAVA_DIR}" && ./mvnw -B test)
+echo "── JaCoCo do pin ──"
+(cd "${JAVA_DIR}" && ./mvnw -B jacoco:report)
+test -f "${JAVA_DIR}/target/site/jacoco/jacoco.xml"
 
 echo "── suíte Python sobre o mesmo sqlite ──"
 export EQUIVALENCIA=1
@@ -194,6 +197,8 @@ if len(sys.argv) > 4 and not faltam and not divergem:
                 java_cobertas = int(contador.get("covered") or 0)
                 java_linhas = java_cobertas + int(contador.get("missed") or 0)
                 break
+    if java_linhas is None or java_cobertas is None:
+        raise SystemExit(f"JaCoCo sem o relatório de linhas em {jacoco}")
     Path(sys.argv[4]).write_text(json.dumps({
         "pytest_passaram": testes - ignorados - falhas - erros,
         "pytest_ignorados": ignorados,
