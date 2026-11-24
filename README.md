@@ -70,35 +70,7 @@ O DANFSe também fica de fora. O PDF da NFS-e é o módulo Go `danfse-service`, 
 
 ## Arquitetura
 
-```mermaid
-flowchart TB
-  subgraph oficial ["Receita Federal"]
-    pinSn["Simples pin a926d5a7"]
-    pinReg["Regime regular pin f1eebd7 — Flyway"]
-    surefire["JUnit no surefire"]
-    pinSn --> surefire
-    pinReg --> db["calculadora-pro.db somente leitura"]
-    db --> surefire
-  end
-
-  subgraph lib ["Esta lib Python"]
-    fachada["consumo.py — nome Java"]
-    escolha["escolha.py — alíquota"]
-    atividade["atividade.py"]
-    calculo["simples.py, processador.py, unificado.py"]
-    politica["arredondamento.py — cópia única"]
-    fachada --> calculo
-    calculo --> escolha
-    calculo --> atividade
-    calculo --> politica
-    calculo --> dbPy["mesmo calculadora-pro.db"]
-  end
-
-  db --> dbPy
-  surefire --> gate["scripts/equivalencia.sh"]
-  pytest["pytest com o nome classe.método"] --> gate
-  dbPy --> pytest
-```
+![Arquitetura](https://raw.githubusercontent.com/garusocruz/calculadora-rtc-simples-nacional/183e8926a3008504fe734bcea272ccbf77959e0f/docs/arquitetura.png)
 
 A escolha da alíquota não importa o cálculo. A atividade não importa a escolha da alíquota. O cálculo usa os dois. Só `arredondamento.py` chama `quantize`.
 
