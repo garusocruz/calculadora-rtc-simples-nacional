@@ -15,7 +15,9 @@ flowchart TD
   comentarioPr --> fimPr[Não publica e não abre tag]
   merge[Push na main] --> cancelaMain[cancela o build anterior da main]
   cancelaMain --> tipo{Esta árvore já é a tag publicada?}
-  tipo -->|não| suite[equivalencia e quality-gates]
+  tipo -->|não| jaPy{Esta versão já está no PyPI?}
+  jaPy -->|sim| recusa[para e não publica de novo]
+  jaPy -->|não| suite[equivalencia e quality-gates]
   suite --> verde{Build verde?}
   verde -->|não| paraSuite[Não grava o README e não publica]
   verde -->|sim| build[build da lib]
@@ -64,7 +66,9 @@ flowchart TD
   ci --> fimPr[Não publica e não abre tag]
   evento -->|push na main| cancelaMain[Cancela o build anterior da main]
   cancelaMain --> qual{Esta árvore já é a tag publicada?}
-  qual -->|não| gates[Roda a suíte]
+  qual -->|não| jaPy{Esta versão já está no PyPI?}
+  jaPy -->|sim| recusa[Para e não publica de novo]
+  jaPy -->|não| gates[Roda a suíte]
   gates --> cadeia[Build, README, PyPI, tag e pull request no mesmo run]
   cadeia --> report[report-pr no fim]
   qual -->|sim| ocioso[Não repete build, tag nem PyPI]
@@ -74,6 +78,6 @@ flowchart TD
 
 Um commit novo na mesma pull request ou na `main` cancela o Cloud Build anterior. A tag não cancela. No build da `main` o passo de cancelamento recebe o ambiente `main`, porque `production` faria o script pular. O restante do build da `main` continua com o rótulo `production` para o comentário da pull request.
 
-O README que entra na tag e no PyPI é o gravado depois do quality gate, no mesmo run. A tag aponta para o commit desse README, não para o merge que ainda não o tinha. A pull request só devolve esse README para a `main`. Se o push chega com a mesma árvore da tag, a suíte não roda. Se a versão já está no PyPI e a árvore mudou, a suíte roda e não abre outra tag. O relatório JaCoCo do pin é gerado no fim da suíte Java desse run. Sem as linhas dele, o README não abre. Sem a frase `o run que validou esta versão`, a tag não abre e o PyPI não recebe o pacote.
+O README que entra na tag e no PyPI é o gravado depois do quality gate, no mesmo run. A tag aponta para o commit desse README, não para o merge que ainda não o tinha. A pull request só devolve esse README para a `main`. Se o push chega com a mesma árvore da tag, a suíte não roda. Se a versão já está no PyPI e a árvore não é a da tag, a esteira para e não publica essa versão de novo. O relatório JaCoCo do pin é gerado no fim da suíte Java desse run. Sem as linhas dele, o README não abre. Sem a frase `o run que validou esta versão`, a tag não abre e o PyPI não recebe o pacote.
 
 O passo `report-pr` fecha a esteira da `main`, depois da publicação. O comentário lê o secret `lynko-github-ci-token`. A tag, a pull request do README e o comentário precisam de Contents: Write e Issues: Write nesse token.

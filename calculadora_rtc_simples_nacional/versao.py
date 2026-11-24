@@ -10,6 +10,7 @@ import time
 import urllib.parse
 from dataclasses import dataclass
 from datetime import timedelta
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,16 @@ class IllegalArgumentException(Exception):
 
 class RestClientException(Exception):
     """Equivalente a ``org.springframework.web.client.RestClientException``."""
+
+
+def _texto_json(valor: object) -> str | None:
+    if valor is None:
+        return None
+    if isinstance(valor, str):
+        return valor
+    if isinstance(valor, Decimal):
+        return format(valor, "f")
+    return str(valor)
 
 
 @dataclass(frozen=True)
@@ -41,12 +52,12 @@ class VersaoDomain:
                 "Error while extracting response for type VersaoDomain"
             )
         return cls(
-            versao_app=payload.get("versaoApp"),
-            versao_db=payload.get("versaoDb"),
-            descricao_versao_db=payload.get("descricaoVersaoDb"),
-            data_versao_db=payload.get("dataVersaoDb"),
-            arquivo_db=payload.get("arquivoDb"),
-            ambiente=payload.get("ambiente"),
+            versao_app=_texto_json(payload.get("versaoApp")),
+            versao_db=_texto_json(payload.get("versaoDb")),
+            descricao_versao_db=_texto_json(payload.get("descricaoVersaoDb")),
+            data_versao_db=_texto_json(payload.get("dataVersaoDb")),
+            arquivo_db=_texto_json(payload.get("arquivoDb")),
+            ambiente=_texto_json(payload.get("ambiente")),
         )
 
 
@@ -193,7 +204,7 @@ class ServicoVersaoOffline:
                     f"and content type [{content_type.split(';')[0]}]"
                 )
             try:
-                payload = json.loads(raw.decode())
+                payload = json.loads(raw.decode(), parse_float=Decimal)
             except json.JSONDecodeError as err:
                 raise RestClientException(
                     "Error while extracting response for type VersaoDomain "

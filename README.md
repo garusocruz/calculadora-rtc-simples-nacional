@@ -1,10 +1,12 @@
 # calculadora-rtc-simples-nacional
 
-Cálculo de CBS e IBS do Simples Nacional, em Python. É uma releitura da calculadora Java da Receita Federal, validada contra a suíte de testes dela no commit pinado. Não é um fork: o código Java não entra neste repositório.
+Cálculo de CBS e IBS do Simples Nacional, em Python. É uma implementação independente da calculadora Java que a Receita Federal publicou em código aberto, conferida contra a suíte de testes daquele projeto no commit pinado. Não é um fork: o código Java não entra neste repositório.
 
-**Nossas** (esta releitura em Python, MIT, Copyright (c) 2026 Garuso Cruz)
+Não é projeto oficial, produto homologado, certificado ou mantido pela Receita Federal do Brasil nem pelo Serpro. Não é parecer, orientação ou consultoria tributária. A suíte do pin não cobre cenário que ela não executa e não substitui a legislação.
 
-[![PyPI 0.4.1](https://img.shields.io/pypi/v/calculadora-rtc-simples-nacional)](https://pypi.org/project/calculadora-rtc-simples-nacional/)
+**Nossas** (esta implementação em Python, MIT, Copyright (c) 2026 Garuso Cruz)
+
+[![PyPI](https://img.shields.io/pypi/v/calculadora-rtc-simples-nacional)](https://pypi.org/project/calculadora-rtc-simples-nacional/)
 [![nossa licença MIT](https://img.shields.io/badge/nossa%20licen%C3%A7a-MIT%20Garuso%20Cruz-green)](LICENSE)
 [![cobertura Python 94,94%](https://img.shields.io/badge/cobertura%20Python-94%2C94%25-brightgreen)](#ultima-validacao)
 [![Cloud Build CI](https://img.shields.io/badge/Cloud%20Build-CI-blue?logo=googlecloud&logoColor=white)](cloudbuild.yaml)
@@ -21,11 +23,14 @@ As duas coberturas medem unidades diferentes: a nossa conta sentenças Python (m
 | --- | --- |
 | Fonte oficial | [ReceitaFederal/calculadora-rtc-simples-nacional](https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional) |
 | Commit pinado | [`a926d5a76095ac0295a6612a9a54db7ffead2396`](https://github.com/ReceitaFederal/calculadora-rtc-simples-nacional/commit/a926d5a76095ac0295a6612a9a54db7ffead2396) |
+| Versão oficial do pin | CalculadorTributo `1.0.2`, commit de 2026-11-20 |
+| Versão oficial do Flyway | CalculadorTributo `1.7.2` do regime regular, commit de 2026-11-19 |
 | Flyway do pin | [regime regular `f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4`](https://github.com/ReceitaFederal/calculadora-rtc-regime-regular/commit/f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4) |
 | Licenças | [LICENSE](LICENSE) (nossa) e [LICENSE-RECEITA.md](LICENSE-RECEITA.md) (Receita, sobre o Java do pin e o Flyway) |
 
 ## Índice
 
+- [Limite de uso](#limite)
 - [Arquitetura](#arquitetura)
 - [Equivalência](#equivalencia)
 - [Última validação](#ultima-validacao)
@@ -39,6 +44,25 @@ As duas coberturas medem unidades diferentes: a nossa conta sentenças Python (m
 A lib não sobe API, não emite nota, não assina XML e não chama a Sefin. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`. O índice público do PyPI tem a `0.4.1`. A release `v0.4.1` é essa versão no GitHub.
 
 O banco é o `calculadora-pro.db` do regime regular, gerado pelo Flyway de https://github.com/ReceitaFederal/calculadora-rtc-regime-regular no pin `f1eebd7`. A política numérica é o mesmo `arredondamento.py` das duas libs, byte a byte.
+
+<a id="limite"></a>
+
+## Limite de uso
+
+O cálculo do item recebe as alíquotas efetivas já resolvidas (`pIBSSN` e `pCBSSN`), como o `SimplesNacionalCalculoService` do pin. Esta lib não apura a alíquota efetiva do Simples a partir da receita bruta do contribuinte.
+
+O resultado depende do insumo, do `calculadora-pro.db` daquele pin e da cobertura da suíte. Uso em documento fiscal exige conferência independente. A publicação do código pela Receita não homologa esta implementação.
+
+Só `arredondamento.py` quantiza, na política do pin. O texto JSON entra com `Decimal`. A conta não usa `float`. A comparação com o Java vale para os casos da suíte daquele commit, não para cenário que ela não executa.
+
+| O que | Nesta versão |
+| --- | --- |
+| Casos da suíte Java do pin | comparados; ver [Última validação](#ultima-validacao) |
+| Alíquota efetiva a partir da receita bruta | não; entra pronta em `pIBSSN` e `pCBSSN` |
+| Arredondamento | só `arredondamento.py`, conferido contra o pin |
+| API, nota, XML e HTTP | não |
+| DANFSe | não |
+| Parecer ou enquadramento tributário | não |
 
 O DANFSe também fica de fora. O PDF da NFS-e é o módulo Go `danfse-service`, em https://github.com/ReceitaFederal/calculadora-rtc-gerador-danfse, pin `8d79e6b2f7fad6375340afcb51c85ed370c64a14`.
 
@@ -83,6 +107,8 @@ A lib abre o SQLite em modo somente leitura. O caminho entra por `CALC_DB`. Sem 
 <a id="equivalencia"></a>
 
 ## Equivalência
+
+O gancho compara o estado do JUnit (passou ou falhou) com o pytest do mesmo caso; não é uma segunda conta numérica fora dessa suíte. Os percentuais da Última validação são do último run que gravou o README, não deste commit.
 
 O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request dispara `calculadora-rtc-simples-nacional-pr` e não publica. O push na `main` dispara `calculadora-rtc-simples-nacional-main`. Depois do quality gate, o mesmo run faz o build da lib, grava o README com esse build e com esse run, publica no PyPI, abre a tag `vX.Y.Z` e abre a pull request que devolve o README para a `main`. O merge dessa pull request vê a versão já publicada e não repete o build.
 
@@ -221,8 +247,8 @@ O código Java oficial não é copiado para este git. A licença dele vale para 
 
 | Obra | Licença | Arquivo |
 | --- | --- | --- |
-| Esta releitura em Python | MIT, Copyright (c) 2026 Garuso Cruz | [LICENSE](LICENSE) |
+| Esta implementação em Python | MIT, Copyright (c) 2026 Garuso Cruz | [LICENSE](LICENSE) |
 | Calculadora Java do Simples, commit `a926d5a76095ac0295a6612a9a54db7ffead2396` | MIT, Copyright (c) 2026 Receita Federal do Brasil | [LICENSE-RECEITA.md](LICENSE-RECEITA.md) |
 | Flyway e banco do regime regular, commit `f1eebd7ce3157423b1a6aaca7dc1d6c3395452c4` | MIT, Copyright (c) 2026 Receita Federal do Brasil | [LICENSE-RECEITA.md](LICENSE-RECEITA.md) |
 
-O texto MIT da Receita exige que o aviso de copyright e a permissão acompanhem cópias substanciais daquela obra. A releitura conserva esse aviso, e a licença desta lib continua sendo a MIT de Garuso Cruz.
+O texto MIT da Receita exige que o aviso de copyright e a permissão acompanhem cópias substanciais daquela obra. Esta implementação conserva esse aviso. A licença desta lib continua sendo a MIT de Garuso Cruz. A MIT da Receita não transfere a titularidade do código dela.

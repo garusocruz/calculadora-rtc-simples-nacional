@@ -1,5 +1,14 @@
 # Mudanças
 
+## 0.4.2
+
+A `0.4.1` já está no PyPI. Esta versão não republica esse número.
+
+- O pin oficial fica no pacote: CalculadorTributo `1.0.2`, commit `a926d5a7`, 2026-11-20.
+- O JSON de entrada e o da versão remota leem número como `Decimal`.
+- O README separa o que a suíte do pin cobre do que fica de fora.
+- A esteira da `main` para se a versão já está no índice e a árvore não é a da tag.
+
 ## 0.2.0
 
 A 0.1.0 publicou este código e manteve o número `0.1.0`. Esta versão lista o que essa publicação continha.
@@ -61,3 +70,4 @@ A `0.4.0` ficou na `main` e no PyPI. Esta versão gera o JaCoCo que o README da 
 
 - Depois do `mvn test`, a suíte roda `jacoco:report`.
 - Sem o relatório de linhas, a equivalência falha antes de gravar o README.
+- O README diz que não é projeto oficial, homologado ou certificado, e que a alíquota efetiva do Simples entra pronta.
