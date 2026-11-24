@@ -41,7 +41,7 @@ As duas coberturas medem unidades diferentes: a nossa conta sentenças Python (m
 
 ## Fora do escopo
 
-A lib não sobe API, não emite nota, não assina XML e não chama a Sefin. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`. O índice público do PyPI tem a `0.4.1`. A release `v0.4.1` é essa versão no GitHub.
+A lib não sobe API, não emite nota, não assina XML e não chama a Sefin. O controller, o MockMvc e o HTTP 400 ficam no Java. Quem consome chama o serviço, com o mesmo nome de método da classe Java, em `calculadora_rtc_simples_nacional.consumo`. O índice público do PyPI tem a `0.4.2`. A release `v0.4.1` é essa versão no GitHub.
 
 O banco é o `calculadora-pro.db` do regime regular, gerado pelo Flyway de https://github.com/ReceitaFederal/calculadora-rtc-regime-regular no pin `f1eebd7`. A política numérica é o mesmo `arredondamento.py` das duas libs, byte a byte.
 
@@ -113,8 +113,8 @@ O gancho compara o estado do JUnit (passou ou falhou) com o pytest do mesmo caso
 O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request dispara `calculadora-rtc-simples-nacional-pr` e não publica. O push na `main` dispara `calculadora-rtc-simples-nacional-main`. Depois do quality gate, o mesmo run faz o build da lib, grava o README com esse build e com esse run, publica no PyPI, abre a tag `vX.Y.Z` e abre a pull request que devolve o README para a `main`. O merge dessa pull request vê a versão já publicada e não repete o build.
 
 <!-- release-runs:start -->
-Release `v0.4.1` em 2026-11-23. Build [`6e279109-1d62-4f89-8a9c-05557c004922`](https://console.cloud.google.com/cloud-build/builds;region=us-central1/6e279109-1d62-4f89-8a9c-05557c004922?project=lynko-508200) no commit `ff2a1bc1fe5da309e93be20694815696d1cbd893`.
-Pacote deste run: `calculadora_rtc_simples_nacional-0.4.1.tar.gz` e `calculadora_rtc_simples_nacional-0.4.1-py3-none-any.whl`.
+Release `v0.4.2` em 2026-11-24. Build [`8e15b8b4-39da-4abc-afaf-b43b81fe79e6`](https://console.cloud.google.com/cloud-build/builds;region=us-central1/8e15b8b4-39da-4abc-afaf-b43b81fe79e6?project=lynko-508200) no commit `9eac4bccd831b1163c1225d8e974b137bce4cdc3`.
+Pacote deste run: `calculadora_rtc_simples_nacional-0.4.2.tar.gz` e `calculadora_rtc_simples_nacional-0.4.2-py3-none-any.whl`.
 <!-- release-runs:end -->
 
 A tag `vX.Y.Z` dispara `calculadora-rtc-simples-nacional-release`. Esse passo não publica de novo: confere o README e que o PyPI já tem a versão gravada no bloco acima.
@@ -144,19 +144,19 @@ O pytest grava `junit_family = legacy` para o `classname` e o `name` saírem igu
 
 ## Última validação
 
-Data: 23 de novembro de 2026. Os números abaixo são do Cloud Build [`6e279109-1d62-4f89-8a9c-05557c004922`](https://console.cloud.google.com/cloud-build/builds;region=us-central1/6e279109-1d62-4f89-8a9c-05557c004922?project=lynko-508200), o run que validou esta versão.
+Data: 24 de novembro de 2026. Os números abaixo são do Cloud Build [`8e15b8b4-39da-4abc-afaf-b43b81fe79e6`](https://console.cloud.google.com/cloud-build/builds;region=us-central1/8e15b8b4-39da-4abc-afaf-b43b81fe79e6?project=lynko-508200), o run que validou esta versão.
 
 | Checagem | Saída |
 | --- | --- |
 | Maven test | a suíte Java do pin passou |
-| Pytest | 486 passaram, 0 ignorados, 14,07 s |
-| Cobertura Python | 95% de 2500 sentenças. O mínimo desta lib é 80% |
+| Pytest | 489 passaram, 0 ignorados, 17,79 s |
+| Cobertura Python | 95% de 2523 sentenças. O mínimo desta lib é 80% |
 | Cobertura Java do pin | 90,56% de 1853 linhas (1678 cobertas). JaCoCo do `mvn test` daquele commit, sem a classe `*Application`, como no `pom.xml` oficial. O workflow oficial exige 80% de linhas |
 | Java no corte daquele run | 185 unitários, 32 e2e |
-| Python no relatório | 963 chaves |
+| Python no relatório | 969 chaves |
 | Sem par | 0 |
 | Resultado diferente | 0 |
-| Pacote deste run | `calculadora_rtc_simples_nacional-0.4.1.tar.gz` e `calculadora_rtc_simples_nacional-0.4.1-py3-none-any.whl` |
+| Pacote deste run | `calculadora_rtc_simples_nacional-0.4.2.tar.gz` e `calculadora_rtc_simples_nacional-0.4.2-py3-none-any.whl` |
 | Frase final | `Equivalência: a mesma suíte passou nas duas.` |
 
 <a id="atualizacao-do-pin"></a>
@@ -183,7 +183,7 @@ Não se recoloca esse cálculo em `backends/faturae`. Não se publica no Artifac
 
 ## Instalação
 
-Python 3.12 ou superior. Não há dependência de runtime além da biblioteca padrão. O pacote público no PyPI é a `0.4.1`.
+Python 3.12 ou superior. Não há dependência de runtime além da biblioteca padrão. O pacote público no PyPI é a `0.4.2`.
 
 ```bash
 pip install calculadora-rtc-simples-nacional
