@@ -115,6 +115,12 @@ def _bool_sql(valor: object) -> bool:
 
 
 def _decimal(valor: object) -> Decimal:
+    if isinstance(valor, Decimal):
+        return valor
+    if isinstance(valor, str):
+        return Decimal(valor)
+    if isinstance(valor, float):
+        return Decimal(str(valor))
     return Decimal(str(valor))
 
 
