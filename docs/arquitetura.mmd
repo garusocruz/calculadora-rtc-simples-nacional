@@ -1,0 +1,27 @@
+flowchart TB
+  subgraph oficial ["Receita Federal"]
+    pinSn["Simples pin a926d5a7"]
+    pinReg["Regime regular pin f1eebd7 — Flyway"]
+    surefire["JUnit no surefire"]
+    pinSn --> surefire
+    pinReg --> db["calculadora-pro.db somente leitura"]
+    db --> surefire
+  end
+
+  subgraph lib ["Esta lib Python"]
+    fachada["consumo.py — nome Java"]
+    escolha["escolha.py — alíquota"]
+    atividade["atividade.py"]
+    calculo["simples.py, processador.py, unificado.py"]
+    politica["arredondamento.py — cópia única"]
+    fachada --> calculo
+    calculo --> escolha
+    calculo --> atividade
+    calculo --> politica
+    calculo --> dbPy["mesmo calculadora-pro.db"]
+  end
+
+  db --> dbPy
+  surefire --> gate["scripts/equivalencia.sh"]
+  pytest["pytest com o nome classe.método"] --> gate
+  dbPy --> pytest

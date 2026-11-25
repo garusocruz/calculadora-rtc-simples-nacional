@@ -78,6 +78,9 @@ semver_gt() {
 
 is_ignored() {
   case "$1" in
+    README.md)
+      return 1
+      ;;
     *.md|*.mdc|docs/*|.github/*|scripts/*|deploy/*|LICENSE*|COPYING*|README*|CHANGELOG*|CONTRIBUTING*|cloudbuild*|*/cloudbuild*|.pre-commit-config.yaml|.gitignore|.gitattributes|.editorconfig)
       return 0
       ;;
