@@ -1,11 +1,12 @@
 [tool.poetry]
 name = "calculadora-rtc-simples-nacional"
-version = "0.4.3"
+version = "0.4.4"
 description = "Implementação independente, em Python, da calculadora de código aberto da Receita Federal para o Simples Nacional. Não é produto oficial nem homologado."
 authors = ["Garuso Cruz <garustoec@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [{ include = "calculadora_rtc_simples_nacional" }]
+include = [{ path = "calculadora_rtc_simples_nacional/data/calculadora-pro.db", format = ["sdist", "wheel"] }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
