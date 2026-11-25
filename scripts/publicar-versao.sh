@@ -154,6 +154,8 @@ git -c user.name="Lynko CI" -c user.email="ci@lynko.click" \
 NOVO="$(git rev-parse HEAD)"
 
 rm -rf dist
+chmod +x scripts/copiar-banco.sh
+bash scripts/copiar-banco.sh
 poetry config pypi-token.pypi "${PYPI_API_TOKEN}"
 poetry publish --build --no-interaction
 

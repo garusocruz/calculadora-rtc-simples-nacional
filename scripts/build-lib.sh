@@ -11,6 +11,9 @@ if ! command -v poetry >/dev/null 2>&1; then
   exit 1
 fi
 
+chmod +x scripts/copiar-banco.sh
+bash scripts/copiar-banco.sh
+
 rm -rf dist
 poetry build
 

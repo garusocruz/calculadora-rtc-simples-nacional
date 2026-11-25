@@ -102,7 +102,7 @@ flowchart TB
 
 A escolha da alíquota não importa o cálculo. A atividade não importa a escolha da alíquota. O cálculo usa os dois. Só `arredondamento.py` chama `quantize`.
 
-A lib abre o SQLite em modo somente leitura. O caminho entra por `CALC_DB`. Sem a variável, ela procura `calculadora/db/calculadora-pro.db` a partir do diretório corrente.
+A lib abre o SQLite em modo somente leitura. Depois da equivalência, o build copia o `calculadora-pro.db` para dentro do pacote e só então gera o wheel. `CALC_DB` vence. Sem a variável, ela abre o sqlite empacotado. Fora do pacote, procura `calculadora/db/calculadora-pro.db` a partir do diretório corrente.
 
 <a id="equivalencia"></a>
 
@@ -110,7 +110,7 @@ A lib abre o SQLite em modo somente leitura. O caminho entra por `CALC_DB`. Sem 
 
 O gancho compara o estado do JUnit (passou ou falhou) com o pytest do mesmo caso; não é uma segunda conta numérica fora dessa suíte. Os percentuais da Última validação são do último run que gravou o README, não deste commit.
 
-O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request dispara `calculadora-rtc-simples-nacional-pr` e não publica. O push na `main` dispara `calculadora-rtc-simples-nacional-main`. Depois do quality gate, o mesmo run faz o build da lib, grava o README com esse build e com esse run, publica no PyPI, abre a tag `vX.Y.Z` e abre a pull request que devolve o README para a `main`. O merge dessa pull request vê a versão já publicada e não repete o build.
+O gancho `scripts/hooks/pre-push.sh` chama `scripts/equivalencia.sh`. O CI é o Cloud Build, sem workflow do GitHub Actions. A pull request dispara `calculadora-rtc-simples-nacional-pr` e não publica. O push na `main` dispara `calculadora-rtc-simples-nacional-main`. Depois do quality gate, o mesmo run copia o sqlite da equivalência para dentro do pacote, faz o build da lib, grava o README com esse build e com esse run, publica no PyPI, abre a tag `vX.Y.Z` e abre a pull request que devolve o README para a `main`. O merge dessa pull request vê a versão já publicada e não repete o build.
 
 <!-- release-runs:start -->
 Release `v0.4.1` em 2026-11-23. Build [`6e279109-1d62-4f89-8a9c-05557c004922`](https://console.cloud.google.com/cloud-build/builds;region=us-central1/6e279109-1d62-4f89-8a9c-05557c004922?project=lynko-508200) no commit `ff2a1bc1fe5da309e93be20694815696d1cbd893`.

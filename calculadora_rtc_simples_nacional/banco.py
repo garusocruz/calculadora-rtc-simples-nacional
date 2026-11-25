@@ -12,12 +12,15 @@ import sqlite3
 from pathlib import Path
 
 ARQUIVO = Path("calculadora/db/calculadora-pro.db")
+EMPACOTADO = Path(__file__).resolve().parent / "data" / "calculadora-pro.db"
 
 
 def caminho() -> Path:
     informado = os.environ.get("CALC_DB")
     if informado:
         return Path(informado)
+    if EMPACOTADO.is_file():
+        return EMPACOTADO
     return ARQUIVO
 
 
