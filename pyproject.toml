@@ -6,7 +6,7 @@ authors = ["Garuso Cruz <garustoec@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [{ include = "calculadora_rtc_simples_nacional" }]
-include = ["calculadora_rtc_simples_nacional/data/calculadora-pro.db"]
+include = [{ path = "calculadora_rtc_simples_nacional/data/calculadora-pro.db", format = ["sdist", "wheel"] }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
